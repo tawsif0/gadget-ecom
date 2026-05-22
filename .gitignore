@@ -31,7 +31,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-*README.md
+README.md
 *INTEGRATION_GUIDE.md
 
 # Archives (do not commit)
