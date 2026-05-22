@@ -3120,6 +3120,10 @@ exports.getAdminProductReports = async (req, res) => {
 
     const fromDate = req.query.from ? new Date(req.query.from) : null;
     const toDate = req.query.to ? new Date(req.query.to) : null;
+    const filterProductId = String(req.query.productId || "").trim();
+    const filterCategoryId = String(req.query.categoryId || "").trim();
+    const filterCategoryType = String(req.query.categoryType || "").trim();
+    const filterBrand = String(req.query.brand || "").trim();
 
     const match = {
       orderStatus: { $nin: ["cancelled", "returned"] },
@@ -3139,23 +3143,39 @@ exports.getAdminProductReports = async (req, res) => {
       };
     }
 
+    const postLookupMatch = {};
+    if (filterProductId) {
+      postLookupMatch["items.product"] = (() => {
+        try {
+          return new mongoose.Types.ObjectId(filterProductId);
+        } catch (error) {
+          return filterProductId;
+        }
+      })();
+    }
+    if (filterCategoryId) {
+      postLookupMatch["product.category"] = (() => {
+        try {
+          return new mongoose.Types.ObjectId(filterCategoryId);
+        } catch (error) {
+          return filterCategoryId;
+        }
+      })();
+    }
+    if (filterBrand) {
+      postLookupMatch["product.brand"] = filterBrand;
+    }
+    if (filterCategoryType) {
+      postLookupMatch["category.type"] = filterCategoryType;
+    }
+
     const reports = await Order.aggregate([
       { $match: match },
       { $unwind: "$items" },
       {
-        $group: {
-          _id: "$items.product",
-          quantitySold: { $sum: "$items.quantity" },
-          grossRevenue: {
-            $sum: { $multiply: ["$items.quantity", "$items.price"] },
-          },
-          orders: { $addToSet: "$_id" },
-        },
-      },
-      {
         $lookup: {
           from: "products",
-          localField: "_id",
+          localField: "items.product",
           foreignField: "_id",
           as: "product",
         },
@@ -3167,12 +3187,62 @@ exports.getAdminProductReports = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: "categories",
+          localField: "product.category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      ...(Object.keys(postLookupMatch).length ? [{ $match: postLookupMatch }] : []),
+      {
+        $group: {
+          _id: "$items.product",
+          quantitySold: { $sum: "$items.quantity" },
+          grossRevenue: {
+            $sum: { $multiply: ["$items.quantity", "$items.price"] },
+          },
+          grossCost: {
+            $sum: {
+              $multiply: ["$items.quantity", { $ifNull: ["$product.costing", 0] }],
+            },
+          },
+          orders: { $addToSet: "$_id" },
+          title: { $first: { $ifNull: ["$product.title", "Product Removed"] } },
+          brand: { $first: { $ifNull: ["$product.brand", ""] } },
+          productType: { $first: { $ifNull: ["$product.productType", ""] } },
+          marketplaceType: { $first: { $ifNull: ["$product.marketplaceType", ""] } },
+          categoryId: { $first: "$product.category" },
+          categoryName: { $first: { $ifNull: ["$category.name", ""] } },
+          categoryType: { $first: { $ifNull: ["$category.type", ""] } },
+        },
+      },
+      {
+        $addFields: {
+          grossProfit: { $subtract: ["$grossRevenue", "$grossCost"] },
+        },
+      },
+      {
         $project: {
           _id: 0,
           productId: "$_id",
-          title: { $ifNull: ["$product.title", "Product Removed"] },
+          title: 1,
+          brand: 1,
+          productType: 1,
+          marketplaceType: 1,
+          categoryId: 1,
+          categoryName: 1,
+          categoryType: 1,
           quantitySold: 1,
           grossRevenue: 1,
+          grossCost: 1,
+          grossProfit: 1,
           orderCount: { $size: "$orders" },
         },
       },
@@ -3180,10 +3250,80 @@ exports.getAdminProductReports = async (req, res) => {
       { $limit: 200 },
     ]);
 
+    const trendRows = await Order.aggregate([
+      { $match: match },
+      { $unwind: "$items" },
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.product",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      {
+        $unwind: {
+          path: "$product",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "product.category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      ...(Object.keys(postLookupMatch).length ? [{ $match: postLookupMatch }] : []),
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          },
+          quantitySold: { $sum: "$items.quantity" },
+          revenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } },
+          cost: {
+            $sum: {
+              $multiply: ["$items.quantity", { $ifNull: ["$product.costing", 0] }],
+            },
+          },
+          orders: { $addToSet: "$_id" },
+        },
+      },
+      {
+        $addFields: {
+          profit: { $subtract: ["$revenue", "$cost"] },
+          orderCount: { $size: "$orders" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          quantitySold: 1,
+          revenue: 1,
+          cost: 1,
+          profit: 1,
+          orderCount: 1,
+        },
+      },
+      { $sort: { date: 1 } },
+      { $limit: 120 },
+    ]);
+
     const normalizedReports = reports.map((row) => ({
       ...row,
       quantitySold: Number(row.quantitySold || 0),
       grossRevenue: roundMoney(Number(row.grossRevenue || 0)),
+      grossCost: roundMoney(Number(row.grossCost || 0)),
+      grossProfit: roundMoney(Number(row.grossProfit || 0)),
       orderCount: Number(row.orderCount || 0),
     }));
 
@@ -3192,21 +3332,35 @@ exports.getAdminProductReports = async (req, res) => {
         acc.totalProducts += 1;
         acc.totalQuantitySold += row.quantitySold;
         acc.totalRevenue += row.grossRevenue;
+        acc.totalCost += Number(row.grossCost || 0);
+        acc.totalProfit += Number(row.grossProfit || 0);
         return acc;
       },
       {
         totalProducts: 0,
         totalQuantitySold: 0,
         totalRevenue: 0,
+        totalCost: 0,
+        totalProfit: 0,
       },
     );
 
     summary.totalRevenue = roundMoney(summary.totalRevenue);
+    summary.totalCost = roundMoney(summary.totalCost);
+    summary.totalProfit = roundMoney(summary.totalProfit);
 
     res.json({
       success: true,
       summary,
       reports: normalizedReports,
+      trend: trendRows.map((row) => ({
+        ...row,
+        quantitySold: Number(row.quantitySold || 0),
+        revenue: roundMoney(Number(row.revenue || 0)),
+        cost: roundMoney(Number(row.cost || 0)),
+        profit: roundMoney(Number(row.profit || 0)),
+        orderCount: Number(row.orderCount || 0),
+      })),
     });
   } catch (error) {
     console.error("Get admin product reports error:", error);

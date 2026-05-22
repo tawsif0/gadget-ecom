@@ -72,39 +72,6 @@ const buildNotificationItem = (badge = "") => ({
   badge,
 });
 
-const MODULE_CHILDREN = [
-  {
-    name: "Accounts",
-    icon: FiDollarSign,
-    tab: "module-accounts",
-  },
-  {
-    name: "Brands",
-    icon: FiTag,
-    tab: "module-brands",
-  },
-  {
-    name: "Business Reports",
-    icon: FiBarChart2,
-    tab: "module-business-reports",
-  },
-  {
-    name: "Abandoned Orders",
-    icon: FiArchive,
-    tab: "module-abandoned",
-  },
-  {
-    name: "Website Setup",
-    icon: FiSettings,
-    tab: "module-website-setup",
-  },
-  {
-    name: "SEO & Analytics",
-    icon: FiSettings,
-    tab: "module-seo-analytics",
-  },
-];
-
 const getRoleSections = (
   role,
   marketplaceMode = "multi",
@@ -133,11 +100,6 @@ const getRoleSections = (
             name: "Order List",
             icon: FiPackage,
             tab: "order-list",
-          },
-          {
-            name: "Add Order",
-            icon: FiPlus,
-            tab: "add-order",
           },
           {
             name: "Shipping Zones",
@@ -250,22 +212,11 @@ const getRoleSections = (
             icon: FiBarChart2,
             tab: "module-business-reports",
           },
-          {
-            name: "Customer Risk",
-            icon: FiShield,
-            tab: "customer-risk",
-          },
         ],
       },
       {
         title: "Operations",
-        items: [
-          {
-            name: "Accounts",
-            icon: FiDollarSign,
-            tab: "module-accounts",
-          },
-        ],
+        items: [],
       },
       {
         title: "Brand & Storefront",
@@ -301,27 +252,15 @@ const getRoleSections = (
       },
       {
         title: "Administration",
-        items: [
-          {
-            name: "Super Admin Control",
-            icon: FiShield,
-            tab: "module-super-admin",
-          },
-          {
-            name: "Admin Users",
-            icon: FiUsers,
-            tab: "module-admin-users",
-          },
-        ],
+        items: [],
       },
       {
         title: "Advanced Modules",
         items: [
           {
-            name: "Marketplace Modules",
             icon: FiSettings,
-            tab: "modules-admin",
-            children: MODULE_CHILDREN,
+            name: "SEO & Analytics",
+            tab: "module-seo-analytics",
           },
         ],
       },

@@ -79,6 +79,7 @@ function ProductModify({ initialMode = "list" }) {
     price: "",
     salePrice: "",
     priceType: "single",
+    costing: "",
     publicationStatus: "draft",
     category: "",
     productType: "General",
@@ -125,10 +126,7 @@ function ProductModify({ initialMode = "list" }) {
     "Best Selling",
     "Latest",
   ];
-  const marketplaceTypes = [
-    { value: "simple", label: "Simple Product" },
-    { value: "digital", label: "Digital Product" },
-  ];
+  const marketplaceTypes = [{ value: "simple", label: "Simple Product" }];
   const priceTypes = [
     { value: "single", label: "Single Price" },
     { value: "best", label: "Best Price" },
@@ -170,21 +168,23 @@ function ProductModify({ initialMode = "list" }) {
           comparePrice: "",
         };
 
-  const createVariantDefinition = (preset = "size") => ({
+  const createVariantDefinition = (preset = "custom") => ({
     preset,
-    name: preset === "size" ? "Size" : preset === "color" ? "Color" : "",
+    name: preset === "color" ? "Color" : "",
     options: [createVariantOption(preset)],
   });
 
   const getDefaultVariantTypeName = (preset = "custom") =>
-    preset === "size" ? "Size" : preset === "color" ? "Color" : "";
+    preset === "color" ? "Color" : "";
 
   const normalizeVariantDefinitionsForForm = (definitions = [], fallbackColors = []) => {
     if (Array.isArray(definitions) && definitions.length > 0) {
       return definitions.map((definition) => ({
-        preset: ["size", "color", "custom"].includes(String(definition?.preset || "custom"))
-          ? String(definition.preset || "custom")
-          : "custom",
+        preset: (() => {
+          const rawPreset = String(definition?.preset || "custom");
+          if (rawPreset === "size") return "custom";
+          return ["color", "custom"].includes(rawPreset) ? rawPreset : "custom";
+        })(),
         name: String(definition?.name || "").trim(),
         options: Array.isArray(definition?.options) && definition.options.length > 0
           ? definition.options.map((option) => ({
@@ -226,11 +226,8 @@ function ProductModify({ initialMode = "list" }) {
   const getNormalizedVariantDefinitions = () =>
     variantDefinitions
       .map((definition) => {
-        const preset = ["size", "color", "custom"].includes(
-          String(definition?.preset || "custom"),
-        )
-          ? String(definition.preset || "custom")
-          : "custom";
+        const rawPreset = String(definition?.preset || "custom");
+        const preset = rawPreset === "size" ? "custom" : ["color", "custom"].includes(rawPreset) ? rawPreset : "custom";
         const defaultName = getDefaultVariantTypeName(preset);
         const name = String(definition?.name || "").trim() || defaultName;
         const options = Array.isArray(definition?.options)
@@ -818,6 +815,7 @@ function ProductModify({ initialMode = "list" }) {
       price: "",
       salePrice: "",
       priceType: "single",
+      costing: "",
       publicationStatus: "draft",
       category: "",
       productType: "General",
@@ -893,6 +891,10 @@ function ProductModify({ initialMode = "list" }) {
         )
           ? String(productData.priceType || "single")
           : "single",
+        costing:
+          productData.costing !== undefined && productData.costing !== null
+            ? String(productData.costing)
+            : "",
         publicationStatus:
           String(productData.publicationStatus || "draft").trim().toLowerCase() ===
           "published"
@@ -1445,7 +1447,7 @@ function ProductModify({ initialMode = "list" }) {
     }
   };
 
-  const handleVariantDefinitionAdd = (preset = "size") => {
+  const handleVariantDefinitionAdd = (preset = "custom") => {
     setVariantDefinitions((prev) => [...prev, createVariantDefinition(preset)]);
   };
 
@@ -1460,9 +1462,13 @@ function ProductModify({ initialMode = "list" }) {
 
         if (field === "preset") {
           const previousPreset = String(definition?.preset || "custom");
-          const preset = ["size", "color", "custom"].includes(String(value || "custom"))
-            ? String(value || "custom")
-            : "custom";
+          const nextRawPreset = String(value || "custom");
+          const preset =
+            nextRawPreset === "size"
+              ? "custom"
+              : ["color", "custom"].includes(nextRawPreset)
+                ? nextRawPreset
+                : "custom";
           const previousDefaultName = getDefaultVariantTypeName(previousPreset);
           const nextDefaultName = getDefaultVariantTypeName(preset);
           const currentName = String(definition?.name || "").trim();
@@ -1728,6 +1734,7 @@ function ProductModify({ initialMode = "list" }) {
       formData.append("priceType", normalizedPriceType);
       formData.append("price", normalizedPrice);
       formData.append("salePrice", normalizedSalePrice);
+      formData.append("costing", form.costing || "0");
       formData.append("category", form.category);
       formData.append("productType", form.productType);
       formData.append("marketplaceType", form.marketplaceType);
@@ -2057,6 +2064,63 @@ function ProductModify({ initialMode = "list" }) {
                           </div>
                         )}
 
+                      <div>
+                        <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                          Product Costing (Tk)
+                        </label>
+                        <input
+                          type="number"
+                          name="costing"
+                          value={form.costing}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          className="w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Used for estimated profit and revenue analytics.
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 md:px-4 py-3 text-sm text-gray-700">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-medium">Estimated Profit (per unit)</span>
+                          <span className="font-semibold text-black">
+                            {(() => {
+                              const sellPrice =
+                                form.priceType === "tba"
+                                  ? 0
+                                  : Number(
+                                      form.priceType === "best"
+                                        ? form.salePrice || form.price || 0
+                                        : form.price || 0,
+                                    );
+                              const cost = Number(form.costing || 0);
+                              return `${(sellPrice - cost).toFixed(2)} Tk`;
+                            })()}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+                          <span>Gross Margin</span>
+                          <span>
+                            {(() => {
+                              const sellPrice =
+                                form.priceType === "tba"
+                                  ? 0
+                                  : Number(
+                                      form.priceType === "best"
+                                        ? form.salePrice || form.price || 0
+                                        : form.price || 0,
+                                    );
+                              if (sellPrice <= 0) return "0.0%";
+                              const cost = Number(form.costing || 0);
+                              return `${(((sellPrice - cost) / sellPrice) * 100).toFixed(1)}%`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+
                       {form.priceType === "tba" && (
                           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700">
                             This product will show <span className="font-semibold">TBA</span>{" "}
@@ -2088,6 +2152,69 @@ function ProductModify({ initialMode = "list" }) {
                       <p className="text-xs text-gray-500 mt-1">
                         Type of product for grouping
                       </p>
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <FiTag className="mr-2" /> Category *
+                      </label>
+                      <SearchableSelect
+                        value={form.category}
+                        onChange={(value) =>
+                          handleChange({ target: { name: "category", value } })
+                        }
+                        options={[
+                          {
+                            value: "",
+                            label:
+                              filteredCategories.length === 0
+                                ? `No categories available for ${form.productType} type`
+                                : "Select a category",
+                          },
+                          ...filteredCategories.map((cat) => ({
+                            value: cat._id,
+                            label: `${cat.name} (${cat.type || "General"})`,
+                          })),
+                        ]}
+                        placeholder="Select a category"
+                        searchable={false}
+                        className="min-w-0"
+                        buttonClassName={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${
+                          errors.category ? "border-red-500" : "border-gray-300"
+                        } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
+                        menuClassName="rounded-xl"
+                      />
+                      {filteredCategories.length === 0 && (
+                        <p className="text-sm text-yellow-600 mt-1">
+                          No categories found for {form.productType} type.
+                          Please create a category first.
+                        </p>
+                      )}
+                      {errors.category && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-1"
+                        >
+                          {errors.category}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    {/* Brand */}
+                    <div>
+                      <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <FiPackage className="mr-2" /> Brand
+                      </label>
+                      <SearchableSelect
+                        value={form.brand}
+                        onChange={(value) => setForm((prev) => ({ ...prev, brand: value }))}
+                        options={brandSelectOptions}
+                        placeholder="Select a brand"
+                        searchPlaceholder="Search brands"
+                        emptyLabel="No matching brands found"
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -2301,69 +2428,6 @@ function ProductModify({ initialMode = "list" }) {
                       )}
                     </div>
                     ) : null}
-
-                    {/* Category */}
-                    <div>
-                      <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                        <FiTag className="mr-2" /> Category *
-                      </label>
-                      <SearchableSelect
-                        value={form.category}
-                        onChange={(value) =>
-                          handleChange({ target: { name: "category", value } })
-                        }
-                        options={[
-                          {
-                            value: "",
-                            label:
-                              filteredCategories.length === 0
-                                ? `No categories available for ${form.productType} type`
-                                : "Select a category",
-                          },
-                          ...filteredCategories.map((cat) => ({
-                            value: cat._id,
-                            label: `${cat.name} (${cat.type || "General"})`,
-                          })),
-                        ]}
-                        placeholder="Select a category"
-                        searchable={false}
-                        className="min-w-0"
-                        buttonClassName={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${
-                          errors.category ? "border-red-500" : "border-gray-300"
-                        } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
-                        menuClassName="rounded-xl"
-                      />
-                      {filteredCategories.length === 0 && (
-                        <p className="text-sm text-yellow-600 mt-1">
-                          No categories found for {form.productType} type.
-                          Please create a category first.
-                        </p>
-                      )}
-                      {errors.category && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="text-sm text-red-500 mt-1"
-                        >
-                          {errors.category}
-                        </motion.p>
-                      )}
-                    </div>
-
-                    {/* Brand */}
-                    <div>
-                      <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                        <FiPackage className="mr-2" /> Brand
-                      </label>
-                      <SearchableSelect
-                        value={form.brand}
-                        onChange={(value) => setForm((prev) => ({ ...prev, brand: value }))}
-                        options={brandSelectOptions}
-                        placeholder="Select a brand"
-                        searchPlaceholder="Search brands"
-                        emptyLabel="No matching brands found"
-                      />
-                    </div>
 
                     {/* Physical Details */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -2810,7 +2874,9 @@ function ProductModify({ initialMode = "list" }) {
 
                   <div className="space-y-3 md:space-y-4">
                     <p className="text-sm text-gray-500">
-                      Variants are optional. Use preset types like <span className="font-semibold">Size</span> or <span className="font-semibold">Color</span>, or switch to <span className="font-semibold">Custom</span> to name your own variant group.
+                      Variants are optional. Use preset types like{" "}
+                      <span className="font-semibold">Color</span>, or switch to{" "}
+                      <span className="font-semibold">Custom</span> to name your own variant group.
                     </p>
 
                     {variantDefinitions.length === 0 ? (
@@ -2835,7 +2901,6 @@ function ProductModify({ initialMode = "list" }) {
                               )
                             }
                             options={[
-                              { value: "size", label: "Size" },
                               { value: "color", label: "Color" },
                               { value: "custom", label: "Custom" },
                             ]}
@@ -2857,11 +2922,9 @@ function ProductModify({ initialMode = "list" }) {
                               )
                             }
                             placeholder={
-                              definition.preset === "size"
-                                ? "Variant type name, e.g. Size"
-                                : definition.preset === "color"
-                                  ? "Variant type name, e.g. Color"
-                                  : "Custom variant type name"
+                              definition.preset === "color"
+                                ? "Variant type name, e.g. Color"
+                                : "Custom variant type name"
                             }
                             className="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm"
                           />
@@ -2925,9 +2988,7 @@ function ProductModify({ initialMode = "list" }) {
                                       )
                                     }
                                     placeholder={
-                                      definition.preset === "size"
-                                        ? "Add size option, e.g. M"
-                                        : "Add custom option"
+                                      "Add custom option"
                                     }
                                     className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                                   />
@@ -3051,16 +3112,8 @@ function ProductModify({ initialMode = "list" }) {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => handleVariantDefinitionAdd("size")}
-                        className="inline-flex items-center gap-2 rounded-lg bg-black px-3 py-2 text-sm font-medium text-white hover:bg-gray-900"
-                      >
-                        <FiPlus className="w-4 h-4" />
-                        Add Size
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => handleVariantDefinitionAdd("color")}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-black"
+                        className="inline-flex items-center gap-2 rounded-lg bg-black px-3 py-2 text-sm font-medium text-white hover:bg-gray-900"
                       >
                         <FiPlus className="w-4 h-4" />
                         Add Color

@@ -180,6 +180,11 @@ const productSchema = new mongoose.Schema({
     enum: ["single", "best", "tba"],
     default: "single",
   },
+  costing: {
+    type: Number,
+    default: 0,
+    min: [0, "Costing cannot be negative"],
+  },
   sku: {
     type: String,
     trim: true,

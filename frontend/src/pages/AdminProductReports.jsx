@@ -47,6 +47,8 @@ const AdminProductReports = () => {
     totalProducts: 0,
     totalQuantitySold: 0,
     totalRevenue: 0,
+    totalCost: 0,
+    totalProfit: 0,
   });
   const [reports, setReports] = useState([]);
   const [isApplying, setIsApplying] = useState(false);
@@ -70,6 +72,8 @@ const AdminProductReports = () => {
           totalProducts: 0,
           totalQuantitySold: 0,
           totalRevenue: 0,
+          totalCost: 0,
+          totalProfit: 0,
         },
       );
       setReports(response.data?.reports || []);
@@ -133,14 +137,18 @@ const AdminProductReports = () => {
       ["Reported Products", summary.totalProducts || 0],
       ["Quantity Sold", summary.totalQuantitySold || 0],
       ["Total Revenue (Tk)", Number(summary.totalRevenue || 0).toFixed(2)],
+      ["Total Cost (Tk)", Number(summary.totalCost || 0).toFixed(2)],
+      ["Total Profit (Tk)", Number(summary.totalProfit || 0).toFixed(2)],
       [],
       ["Rows"],
-      ["Product", "Qty Sold", "Orders", "Revenue (Tk)"],
+      ["Product", "Qty Sold", "Orders", "Revenue (Tk)", "Cost (Tk)", "Profit (Tk)"],
       ...reports.map((row) => [
         row.title || "",
         Number(row.quantitySold || 0),
         Number(row.orderCount || 0),
         Number(row.grossRevenue || 0).toFixed(2),
+        Number(row.grossCost || 0).toFixed(2),
+        Number(row.grossProfit || 0).toFixed(2),
       ]),
     ];
 
@@ -179,6 +187,8 @@ const AdminProductReports = () => {
         ["Reported Products", Number(summary.totalProducts || 0)],
         ["Quantity Sold", Number(summary.totalQuantitySold || 0)],
         ["Total Revenue (Tk)", Number(summary.totalRevenue || 0).toFixed(2)],
+        ["Total Cost (Tk)", Number(summary.totalCost || 0).toFixed(2)],
+        ["Total Profit (Tk)", Number(summary.totalProfit || 0).toFixed(2)],
       ],
       theme: "grid",
       styles: { fontSize: 9 },
@@ -189,12 +199,14 @@ const AdminProductReports = () => {
 
     autoTable(doc, {
       startY: (doc.lastAutoTable?.finalY || 90) + 18,
-      head: [["Product", "Qty Sold", "Orders", "Revenue (Tk)"]],
+      head: [["Product", "Qty Sold", "Orders", "Revenue (Tk)", "Cost (Tk)", "Profit (Tk)"]],
       body: reports.map((row) => [
         row.title || "",
         Number(row.quantitySold || 0),
         Number(row.orderCount || 0),
         Number(row.grossRevenue || 0).toFixed(2),
+        Number(row.grossCost || 0).toFixed(2),
+        Number(row.grossProfit || 0).toFixed(2),
       ]),
       theme: "striped",
       styles: { fontSize: 9, cellPadding: 4 },
@@ -285,7 +297,7 @@ const AdminProductReports = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <p className="text-xs text-gray-500">Reported Products</p>
           <p className="text-2xl font-bold text-black mt-1">{summary.totalProducts || 0}</p>
@@ -300,6 +312,18 @@ const AdminProductReports = () => {
           <p className="text-xs text-gray-500">Total Revenue</p>
           <p className="text-2xl font-bold text-black mt-1">
             {Number(summary.totalRevenue || 0).toFixed(2)} Tk
+          </p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <p className="text-xs text-gray-500">Total Cost</p>
+          <p className="text-2xl font-bold text-black mt-1">
+            {Number(summary.totalCost || 0).toFixed(2)} Tk
+          </p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <p className="text-xs text-gray-500">Total Profit</p>
+          <p className="text-2xl font-bold text-black mt-1">
+            {Number(summary.totalProfit || 0).toFixed(2)} Tk
           </p>
         </div>
       </div>
@@ -349,6 +373,8 @@ const AdminProductReports = () => {
                   <th className="py-2 pr-3">Qty Sold</th>
                   <th className="py-2 pr-3">Orders</th>
                   <th className="py-2 pr-3">Revenue</th>
+                  <th className="py-2 pr-3">Cost</th>
+                  <th className="py-2 pr-3">Profit</th>
                 </tr>
               </thead>
               <tbody>
@@ -359,6 +385,12 @@ const AdminProductReports = () => {
                     <td className="py-2 pr-3">{Number(row.orderCount || 0)}</td>
                     <td className="py-2 pr-3">
                       {Number(row.grossRevenue || 0).toFixed(2)} Tk
+                    </td>
+                    <td className="py-2 pr-3">
+                      {Number(row.grossCost || 0).toFixed(2)} Tk
+                    </td>
+                    <td className="py-2 pr-3">
+                      {Number(row.grossProfit || 0).toFixed(2)} Tk
                     </td>
                   </tr>
                 ))}

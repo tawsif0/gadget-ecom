@@ -901,6 +901,7 @@ exports.createProduct = async (req, res) => {
     const category = req.body.category;
     let productType = asString(req.body.productType || "General").trim() || "General";
     const brand = asString(req.body.brand).trim();
+    const costing = asNonNegativeNumber(req.body.costing, 0);
     const youtubeVideoUrls = normalizeYouTubeVideoUrls(
       req.body.youtubeVideoUrls !== undefined
         ? req.body.youtubeVideoUrls
@@ -1051,6 +1052,7 @@ exports.createProduct = async (req, res) => {
       commissionType: "inherit",
       commissionValue: 0,
       commissionFixed: 0,
+      costing,
       isRecurring: marketplacePayload.isRecurring,
       recurringInterval: marketplacePayload.recurringInterval,
       recurringIntervalCount: marketplacePayload.recurringIntervalCount,
@@ -1554,6 +1556,10 @@ exports.updateProduct = async (req, res) => {
       price: marketplacePayload.price,
       salePrice: marketplacePayload.salePrice,
       priceType: marketplacePayload.priceType,
+      costing:
+        req.body.costing !== undefined
+          ? asNonNegativeNumber(req.body.costing, product.costing || 0)
+          : product.costing || 0,
       commissionType: "inherit",
       commissionValue: 0,
       commissionFixed: 0,

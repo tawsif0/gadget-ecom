@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import {
@@ -13,9 +13,23 @@ import {
   TicketIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
+import {
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import usePublicSettings from "../hooks/usePublicSettings";
 import {
   canAccessDashboardTab,
+  isSuperAdminUser,
   normalizeMarketplaceMode,
 } from "../utils/dashboardAccess";
 
@@ -65,6 +79,7 @@ const DashboardHome = ({ user, onTabChange }) => {
   const { settings, loaded } = usePublicSettings();
 
   const isAdmin = user?.userType === "admin";
+  const isSuperAdmin = isSuperAdminUser(user);
   const marketplaceMode = loaded
     ? normalizeMarketplaceMode(settings?.marketplaceMode)
     : "multi";
@@ -79,11 +94,173 @@ const DashboardHome = ({ user, onTabChange }) => {
     { label: "Wishlist", tab: "wishlist", icon: HeartIcon },
   ];
 
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsOptionsLoading, setAnalyticsOptionsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState("");
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [analyticsFilters, setAnalyticsFilters] = useState({
+    from: "",
+    to: "",
+    productId: "",
+    categoryId: "",
+    categoryType: "",
+    brand: "",
+  });
+  const [groupBy, setGroupBy] = useState("product");
+  const [analyticsPayload, setAnalyticsPayload] = useState({
+    summary: null,
+    reports: [],
+    trend: [],
+  });
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const loadAnalyticsOptions = useCallback(async () => {
+    try {
+      setAnalyticsOptionsLoading(true);
+      const [productResponse, categoryResponse, brandResponse] = await Promise.all([
+        axios.get(`${baseUrl}/products`, { headers: getAuthHeaders() }),
+        axios.get(`${baseUrl}/categories`, { headers: getAuthHeaders() }),
+        axios.get(`${baseUrl}/brands`, { headers: getAuthHeaders() }),
+      ]);
+
+      setProducts(Array.isArray(productResponse.data?.products) ? productResponse.data.products : []);
+      setCategories(
+        Array.isArray(categoryResponse.data?.categories) ? categoryResponse.data.categories : [],
+      );
+      setBrands(Array.isArray(brandResponse.data?.brands) ? brandResponse.data.brands : []);
+    } catch (error) {
+      setProducts([]);
+      setCategories([]);
+      setBrands([]);
+    } finally {
+      setAnalyticsOptionsLoading(false);
+    }
+  }, []);
+
+  const loadRevenueAnalytics = useCallback(
+    async (filters = analyticsFilters) => {
+      try {
+        setAnalyticsLoading(true);
+        setAnalyticsError("");
+        const response = await axios.get(`${baseUrl}/orders/admin/product-reports`, {
+          headers: getAuthHeaders(),
+          params: {
+            from: filters.from || undefined,
+            to: filters.to || undefined,
+            productId: filters.productId || undefined,
+            categoryId: filters.categoryId || undefined,
+            categoryType: filters.categoryType || undefined,
+            brand: filters.brand || undefined,
+          },
+        });
+
+        setAnalyticsPayload({
+          summary: response.data?.summary || null,
+          reports: Array.isArray(response.data?.reports) ? response.data.reports : [],
+          trend: Array.isArray(response.data?.trend) ? response.data.trend : [],
+        });
+      } catch (error) {
+        setAnalyticsError(error.response?.data?.message || "Failed to load revenue analytics");
+        setAnalyticsPayload({ summary: null, reports: [], trend: [] });
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    },
+    [analyticsFilters],
+  );
+
   useEffect(() => {
     if (isAdmin) {
       fetchAdminData();
     }
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin || !isSuperAdmin) return;
+    loadAnalyticsOptions();
+    loadRevenueAnalytics();
+  }, [isAdmin, isSuperAdmin, loadAnalyticsOptions, loadRevenueAnalytics]);
+
+  const categoryTypeOptions = useMemo(() => {
+    const types = new Set();
+    categories.forEach((cat) => {
+      const type = String(cat?.type ?? cat?.categoryType ?? cat?.productType ?? "").trim();
+      if (type) types.add(type);
+    });
+    return Array.from(types).sort((a, b) => a.localeCompare(b));
+  }, [categories]);
+
+  const productSelectOptions = useMemo(
+    () =>
+      products.map((product) => ({
+        value: String(product?._id || ""),
+        label: String(product?.title || "Untitled Product"),
+      })),
+    [products],
+  );
+
+  const categorySelectOptions = useMemo(
+    () =>
+      categories.map((cat) => ({
+        value: String(cat?._id || ""),
+        label: `${String(cat?.name || "Unnamed")} (${String(
+          cat?.type ?? cat?.categoryType ?? cat?.productType ?? "General",
+        )})`,
+      })),
+    [categories],
+  );
+
+  const brandSelectOptions = useMemo(
+    () =>
+      brands
+        .map((brand) => String(brand?.name || "").trim())
+        .filter(Boolean)
+        .map((name) => ({ value: name, label: name })),
+    [brands],
+  );
+
+  const pieData = useMemo(() => {
+    const keyForRow = (row) => {
+      if (groupBy === "category") return String(row?.categoryName || "Unassigned");
+      if (groupBy === "brand") return String(row?.brand || "Unassigned");
+      if (groupBy === "categoryType") return String(row?.categoryType || "Unassigned");
+      return String(row?.title || "Product");
+    };
+
+    const buckets = new Map();
+    analyticsPayload.reports.forEach((row) => {
+      const key = keyForRow(row);
+      const value = Number(row?.grossRevenue || 0);
+      buckets.set(key, (buckets.get(key) || 0) + value);
+    });
+
+    const sorted = Array.from(buckets.entries())
+      .map(([name, value]) => ({ name, value: Number(value.toFixed(2)) }))
+      .sort((a, b) => b.value - a.value);
+
+    if (sorted.length <= 8) return sorted;
+    const top = sorted.slice(0, 8);
+    const otherValue = sorted.slice(8).reduce((acc, entry) => acc + entry.value, 0);
+    return [...top, { name: "Other", value: Number(otherValue.toFixed(2)) }];
+  }, [analyticsPayload.reports, groupBy]);
+
+  const chartColors = [
+    "#111827",
+    "#2563eb",
+    "#16a34a",
+    "#ca8a04",
+    "#9333ea",
+    "#ea580c",
+    "#db2777",
+    "#0ea5e9",
+    "#64748b",
+  ];
 
   const fetchAdminData = async () => {
     try {
@@ -381,6 +558,316 @@ const DashboardHome = ({ user, onTabChange }) => {
               </div>
             </div>
 
+            {isSuperAdmin ? (
+              <div className={`${panelClass} overflow-hidden`}>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      Revenue Analytics
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Product costing analytics with revenue, sold units, and profit.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadRevenueAnalytics()}
+                    disabled={analyticsLoading}
+                    className="app-btn-secondary h-10 px-4 text-sm font-semibold disabled:opacity-60"
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600 mb-1 block">
+                        From
+                      </span>
+                      <input
+                        type="date"
+                        value={analyticsFilters.from}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            from: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600 mb-1 block">
+                        To
+                      </span>
+                      <input
+                        type="date"
+                        value={analyticsFilters.to}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            to: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600 mb-1 block">
+                        Product
+                      </span>
+                      <select
+                        value={analyticsFilters.productId}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            productId: event.target.value,
+                          }))
+                        }
+                        disabled={analyticsOptionsLoading}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+                      >
+                        <option value="">All products</option>
+                        {productSelectOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600 mb-1 block">
+                        Category
+                      </span>
+                      <select
+                        value={analyticsFilters.categoryId}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            categoryId: event.target.value,
+                          }))
+                        }
+                        disabled={analyticsOptionsLoading}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+                      >
+                        <option value="">All categories</option>
+                        {categorySelectOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600 mb-1 block">
+                        Category Type
+                      </span>
+                      <select
+                        value={analyticsFilters.categoryType}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            categoryType: event.target.value,
+                          }))
+                        }
+                        disabled={analyticsOptionsLoading}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+                      >
+                        <option value="">All types</option>
+                        {categoryTypeOptions.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600 mb-1 block">
+                        Brand
+                      </span>
+                      <select
+                        value={analyticsFilters.brand}
+                        onChange={(event) =>
+                          setAnalyticsFilters((prev) => ({
+                            ...prev,
+                            brand: event.target.value,
+                          }))
+                        }
+                        disabled={analyticsOptionsLoading}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+                      >
+                        <option value="">All brands</option>
+                        {brandSelectOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <span className="text-xs font-medium text-gray-600">
+                        Pie group
+                      </span>
+                      <select
+                        value={groupBy}
+                        onChange={(event) => setGroupBy(event.target.value)}
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="product">Product</option>
+                        <option value="category">Category</option>
+                        <option value="categoryType">Category Type</option>
+                        <option value="brand">Brand</option>
+                      </select>
+                    </label>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => loadRevenueAnalytics()}
+                        disabled={analyticsLoading}
+                        className="inline-flex h-10 items-center justify-center rounded-lg bg-black px-4 text-sm font-semibold text-white disabled:opacity-60"
+                      >
+                        Apply
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cleared = {
+                            from: "",
+                            to: "",
+                            productId: "",
+                            categoryId: "",
+                            categoryType: "",
+                            brand: "",
+                          };
+                          setAnalyticsFilters(cleared);
+                          loadRevenueAnalytics(cleared);
+                        }}
+                        disabled={analyticsLoading}
+                        className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-800 disabled:opacity-60"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {analyticsError ? (
+                  <p className="mt-4 text-sm text-red-600">{analyticsError}</p>
+                ) : (
+                  <>
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                      <div className="rounded-xl border border-gray-200 bg-white p-4">
+                        <p className="text-[11px] text-gray-500">Sold Units</p>
+                        <p className="text-xl font-bold text-black mt-1">
+                          {Number(analyticsPayload.summary?.totalQuantitySold || 0)}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-gray-200 bg-white p-4">
+                        <p className="text-[11px] text-gray-500">Revenue</p>
+                        <p className="text-xl font-bold text-black mt-1">
+                          {Number(analyticsPayload.summary?.totalRevenue || 0).toFixed(2)} Tk
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-gray-200 bg-white p-4">
+                        <p className="text-[11px] text-gray-500">Cost</p>
+                        <p className="text-xl font-bold text-black mt-1">
+                          {Number(analyticsPayload.summary?.totalCost || 0).toFixed(2)} Tk
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-gray-200 bg-white p-4">
+                        <p className="text-[11px] text-gray-500">Profit</p>
+                        <p className="text-xl font-bold text-black mt-1">
+                          {Number(analyticsPayload.summary?.totalProfit || 0).toFixed(2)} Tk
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-gray-200 bg-white p-4">
+                        <p className="text-[11px] text-gray-500">Reported Products</p>
+                        <p className="text-xl font-bold text-black mt-1">
+                          {Number(analyticsPayload.summary?.totalProducts || 0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 min-w-0">
+                        <p className="text-sm font-semibold text-black mb-2">
+                          Revenue share (Pie)
+                        </p>
+                        <div className="h-[280px] w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Tooltip />
+                              <Legend verticalAlign="bottom" height={48} />
+                              <Pie
+                                data={pieData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="45%"
+                                outerRadius={95}
+                                innerRadius={45}
+                                paddingAngle={2}
+                              >
+                                {pieData.map((entry, index) => (
+                                  <Cell
+                                    key={`${entry.name}-${index}`}
+                                    fill={chartColors[index % chartColors.length]}
+                                  />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 min-w-0">
+                        <p className="text-sm font-semibold text-black mb-2">
+                          Revenue & sold units trend
+                        </p>
+                        <div className="h-[280px] w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={analyticsPayload.trend}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                              <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                              <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                tick={{ fontSize: 11 }}
+                              />
+                              <Tooltip />
+                              <Legend />
+                              <Line
+                                yAxisId="left"
+                                type="monotone"
+                                dataKey="revenue"
+                                stroke="#2563eb"
+                                strokeWidth={2}
+                                dot={false}
+                              />
+                              <Line
+                                yAxisId="right"
+                                type="monotone"
+                                dataKey="quantitySold"
+                                stroke="#111827"
+                                strokeWidth={2}
+                                dot={false}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+
             <div className={panelClass}>
               <p className="text-sm font-semibold text-gray-900 mb-3">
                 Recent Orders
@@ -426,11 +913,6 @@ const DashboardHome = ({ user, onTabChange }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                   {
-                    label: "Add Order",
-                    tab: "add-order",
-                    icon: ShoppingBagIcon,
-                  },
-                  {
                     label: "Order List",
                     tab: "order-list",
                     icon: ShoppingBagIcon,
@@ -439,16 +921,6 @@ const DashboardHome = ({ user, onTabChange }) => {
                     label: "Inventory Center",
                     tab: "module-inventory",
                     icon: ArrowRightIcon,
-                  },
-                  {
-                    label: "Customer Risk",
-                    tab: "customer-risk",
-                    icon: ShieldCheckIcon,
-                  },
-                  {
-                    label: "Abandoned Orders",
-                    tab: "module-abandoned",
-                    icon: TicketIcon,
                   },
                   {
                     label: "Business Reports",
@@ -461,24 +933,9 @@ const DashboardHome = ({ user, onTabChange }) => {
                     icon: ArrowRightIcon,
                   },
                   {
-                    label: "Super Admin",
-                    tab: "module-super-admin",
-                    icon: ShieldCheckIcon,
-                  },
-                  {
                     label: "Brands",
                     tab: "module-brands",
                     icon: ArrowRightIcon,
-                  },
-                  {
-                    label: "Accounts",
-                    tab: "module-accounts",
-                    icon: CurrencyDollarIcon,
-                  },
-                  {
-                    label: "Admin Users",
-                    tab: "module-admin-users",
-                    icon: ShieldCheckIcon,
                   },
                   {
                     label: "Geolocation",

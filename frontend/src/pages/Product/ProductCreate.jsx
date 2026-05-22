@@ -52,6 +52,7 @@ const ProductCreate = () => {
     title: "",
     description: "",
     price: "",
+    costing: "",
     sku: "",
     stock: "0",
     lowStockThreshold: "5",
@@ -59,6 +60,7 @@ const ProductCreate = () => {
     category: "",
     productType: "General",
     brand: "",
+    marketplaceType: "simple",
     weight: "",
     dimensions: "",
     deliveryMinDays: "2",
@@ -83,6 +85,7 @@ const ProductCreate = () => {
     "Best Selling",
     "Latest",
   ];
+  const marketplaceTypes = [{ value: "simple", label: "Simple Product" }];
 
   const getToken = () => {
     return localStorage.getItem("token");
@@ -175,7 +178,8 @@ const ProductCreate = () => {
   };
 
   const resolveCategoryTypeKey = (category) => {
-    const rawType = category?.type ?? category?.categoryType ?? category?.productType;
+    const rawType =
+      category?.type ?? category?.categoryType ?? category?.productType;
     const key = normalizeTypeKey(rawType);
     return key || "general";
   };
@@ -183,17 +187,17 @@ const ProductCreate = () => {
   const filterCategoriesByType = (type, categoriesList = categories) => {
     const selectedKey = normalizeTypeKey(type) || "general";
 
-    const filtered = (Array.isArray(categoriesList) ? categoriesList : []).filter(
-      (cat) => {
-        const categoryKey = resolveCategoryTypeKey(cat);
+    const filtered = (
+      Array.isArray(categoriesList) ? categoriesList : []
+    ).filter((cat) => {
+      const categoryKey = resolveCategoryTypeKey(cat);
 
-        if (selectedKey === "general") {
-          return categoryKey === "general";
-        }
+      if (selectedKey === "general") {
+        return categoryKey === "general";
+      }
 
-        return categoryKey === selectedKey;
-      },
-    );
+      return categoryKey === selectedKey;
+    });
 
     setFilteredCategories(filtered);
 
@@ -284,7 +288,7 @@ const ProductCreate = () => {
     const validFiles = filesArray.filter((file) => {
       if (!validTypes.includes(file.type)) {
         toast.error(
-          `Invalid file type: ${file.name}. Only JPG, PNG, WebP, GIF allowed.`
+          `Invalid file type: ${file.name}. Only JPG, PNG, WebP, GIF allowed.`,
         );
         return false;
       }
@@ -325,7 +329,10 @@ const ProductCreate = () => {
     const selectedFiles = Array.from(e.target.files || []);
     if (!selectedFiles.length) return;
 
-    const availableSlots = Math.max(0, MAX_PRODUCT_VIDEO_UPLOADS - videoFiles.length);
+    const availableSlots = Math.max(
+      0,
+      MAX_PRODUCT_VIDEO_UPLOADS - videoFiles.length,
+    );
     if (availableSlots <= 0) {
       toast.error(`You can upload up to ${MAX_PRODUCT_VIDEO_UPLOADS} videos.`);
       e.target.value = "";
@@ -351,11 +358,12 @@ const ProductCreate = () => {
     });
 
     if (nextFiles.length > 0) {
-      setVideoFiles((prev) => [...prev, ...nextFiles].slice(0, MAX_PRODUCT_VIDEO_UPLOADS));
-      setVideoPreviews((prev) => [
-        ...prev,
-        ...nextPreviews,
-      ].slice(0, MAX_PRODUCT_VIDEO_UPLOADS));
+      setVideoFiles((prev) =>
+        [...prev, ...nextFiles].slice(0, MAX_PRODUCT_VIDEO_UPLOADS),
+      );
+      setVideoPreviews((prev) =>
+        [...prev, ...nextPreviews].slice(0, MAX_PRODUCT_VIDEO_UPLOADS),
+      );
     }
 
     e.target.value = "";
@@ -365,13 +373,19 @@ const ProductCreate = () => {
     if (videoPreviews[index]) {
       URL.revokeObjectURL(videoPreviews[index]);
     }
-    setVideoFiles((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
-    setVideoPreviews((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
+    setVideoFiles((prev) =>
+      prev.filter((_, currentIndex) => currentIndex !== index),
+    );
+    setVideoPreviews((prev) =>
+      prev.filter((_, currentIndex) => currentIndex !== index),
+    );
   };
 
   const handleYoutubeUrlChange = (index, value) => {
     setYoutubeVideoUrls((prev) =>
-      prev.map((entry, currentIndex) => (currentIndex === index ? value : entry)),
+      prev.map((entry, currentIndex) =>
+        currentIndex === index ? value : entry,
+      ),
     );
   };
 
@@ -428,7 +442,9 @@ const ProductCreate = () => {
   };
 
   const handleColorAdd = (colorValue) => {
-    const normalizedColor = String(colorValue || "").trim().toLowerCase();
+    const normalizedColor = String(colorValue || "")
+      .trim()
+      .toLowerCase();
     if (!/^#[0-9a-f]{6}$/.test(normalizedColor)) {
       return;
     }
@@ -549,25 +565,29 @@ const ProductCreate = () => {
       formData.append("allowBackorder", String(Boolean(form.allowBackorder)));
       formData.append("category", form.category);
       formData.append("productType", form.productType);
+      formData.append("marketplaceType", form.marketplaceType);
       formData.append("brand", form.brand.trim());
+      formData.append("costing", form.costing || "0");
       formData.append("weight", form.weight || "0");
       formData.append("dimensions", form.dimensions.trim());
       formData.append("deliveryMinDays", form.deliveryMinDays || "2");
       formData.append("deliveryMaxDays", form.deliveryMaxDays || "5");
       formData.append(
         "youtubeVideoUrls",
-        JSON.stringify(youtubeVideoUrls.map((value) => value.trim()).filter(Boolean)),
+        JSON.stringify(
+          youtubeVideoUrls.map((value) => value.trim()).filter(Boolean),
+        ),
       );
       formData.append("colors", JSON.stringify(form.colors));
       formData.append(
         "features",
-        JSON.stringify(features.filter((f) => f.trim()))
+        JSON.stringify(features.filter((f) => f.trim())),
       );
       formData.append(
         "specifications",
         JSON.stringify(
-          specifications.filter((s) => s.key.trim() && s.value.trim())
-        )
+          specifications.filter((s) => s.key.trim() && s.value.trim()),
+        ),
       );
       formData.append("isActive", "true");
 
@@ -600,6 +620,7 @@ const ProductCreate = () => {
           title: "",
           description: "",
           price: "",
+          costing: "",
           sku: "",
           stock: "0",
           lowStockThreshold: "5",
@@ -607,6 +628,7 @@ const ProductCreate = () => {
           category: "",
           productType: "General",
           brand: "",
+          marketplaceType: "simple",
           weight: "",
           dimensions: "",
           deliveryMinDays: "2",
@@ -634,7 +656,7 @@ const ProductCreate = () => {
         window.dispatchEvent(
           new CustomEvent("productCreated", {
             detail: response.data.product,
-          })
+          }),
         );
       }
     } catch (err) {
@@ -747,8 +769,8 @@ const ProductCreate = () => {
                     )}
                   </div>
 
-                  {/* Price */}
-                  <div className="grid grid-cols-1 gap-3 md:gap-4">
+                  {/* Pricing */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     <div>
                       <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                         <span className="mr-2 font-semibold">Tk</span>
@@ -772,6 +794,59 @@ const ProductCreate = () => {
                           {errors.price}
                         </p>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <span className="mr-2 font-semibold">Tk</span>
+                        Product Costing (Tk)
+                      </label>
+                      <input
+                        type="number"
+                        name="costing"
+                        value={form.costing}
+                        onChange={handleChange}
+                        placeholder="Tk 0.00"
+                        step="0.01"
+                        min="0"
+                        className="w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Used to calculate estimated profit & dashboard revenue
+                        analytics.
+                      </p>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 md:px-4 py-3 text-sm text-gray-700">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-medium">
+                            Estimated Profit (per unit)
+                          </span>
+                          <span className="font-semibold text-black">
+                            {Number(
+                              (
+                                Number(form.price || 0) -
+                                Number(form.costing || 0)
+                              ).toFixed(2),
+                            ).toFixed(2)}{" "}
+                            Tk
+                          </span>
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+                          <span>Gross Margin</span>
+                          <span>
+                            {Number(form.price || 0) > 0
+                              ? `${(
+                                  ((Number(form.price || 0) -
+                                    Number(form.costing || 0)) /
+                                    Number(form.price || 0)) *
+                                  100
+                                ).toFixed(1)}%`
+                              : "0.0%"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -912,12 +987,38 @@ const ProductCreate = () => {
                     </label>
                     <SearchableSelect
                       value={form.brand}
-                      onChange={(value) => setForm((prev) => ({ ...prev, brand: value }))}
+                      onChange={(value) =>
+                        setForm((prev) => ({ ...prev, brand: value }))
+                      }
                       options={brandSelectOptions}
                       placeholder="Select a brand"
                       searchPlaceholder="Search brands"
                       emptyLabel="No matching brands found"
                     />
+                  </div>
+
+                  {/* Marketplace Type */}
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                      Marketplace Type *
+                    </label>
+                    <SearchableSelect
+                      value={form.marketplaceType}
+                      onChange={(value) =>
+                        handleChange({
+                          target: { name: "marketplaceType", value },
+                        })
+                      }
+                      options={marketplaceTypes}
+                      placeholder="Marketplace Type"
+                      searchable={false}
+                      className="min-w-0"
+                      buttonClassName="w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base"
+                      menuClassName="rounded-xl"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Digital product option is disabled for this project.
+                    </p>
                   </div>
 
                   {/* Physical Details */}
@@ -983,7 +1084,8 @@ const ProductCreate = () => {
                     </div>
                   </div>
                   <p className="-mt-1 text-xs text-gray-500">
-                    Set the delivery window for this product. It will be shown on the product page and used in checkout messaging.
+                    Set the delivery window for this product. It will be shown
+                    on the product page and used in checkout messaging.
                   </p>
 
                   {/* Features */}
@@ -1039,7 +1141,7 @@ const ProductCreate = () => {
                             handleSpecificationChange(
                               index,
                               "key",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:border-gray-500 text-sm md:text-base"
@@ -1052,7 +1154,7 @@ const ProductCreate = () => {
                             handleSpecificationChange(
                               index,
                               "value",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:border-gray-500 text-sm md:text-base"
@@ -1217,7 +1319,10 @@ const ProductCreate = () => {
                     {videoPreviews.length > 0 ? (
                       <div className="grid gap-3 md:grid-cols-3">
                         {videoPreviews.map((preview, index) => (
-                          <div key={`product-video-${index}`} className="relative">
+                          <div
+                            key={`product-video-${index}`}
+                            className="relative"
+                          >
                             <video
                               src={preview}
                               className="h-40 w-full rounded-lg bg-black object-contain"
@@ -1244,7 +1349,8 @@ const ProductCreate = () => {
                       <>
                         <FiUpload className="mx-auto text-gray-400 text-2xl md:text-3xl mb-2 mt-2" />
                         <p className="text-gray-600 mb-2 text-sm md:text-base">
-                          Upload up to {MAX_PRODUCT_VIDEO_UPLOADS} product videos, 9 MB each
+                          Upload up to {MAX_PRODUCT_VIDEO_UPLOADS} product
+                          videos, 9 MB each
                         </p>
                         <input
                           type="file"
@@ -1302,7 +1408,8 @@ const ProductCreate = () => {
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    These links will appear in the product gallery beside the images and uploaded videos.
+                    These links will appear in the product gallery beside the
+                    images and uploaded videos.
                   </p>
                 </div>
               </motion.div>
@@ -1328,7 +1435,7 @@ const ProductCreate = () => {
                       <div className="flex flex-wrap gap-1 md:gap-2">
                         {form.colors.map((color, index) => {
                           const colorObj = colorOptions.find(
-                            (c) => c.value === color
+                            (c) => c.value === color,
                           );
                           return (
                             <div
@@ -1402,7 +1509,9 @@ const ProductCreate = () => {
                       <input
                         type="text"
                         value={customColorValue}
-                        onChange={(event) => setCustomColorValue(event.target.value)}
+                        onChange={(event) =>
+                          setCustomColorValue(event.target.value)
+                        }
                         placeholder="#2563eb"
                         className="flex-1 h-10 px-3 border border-gray-300 rounded-lg text-sm"
                       />
