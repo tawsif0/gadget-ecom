@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/vite.png" data-website-favicon="true" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ecommerce</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://res.cloudinary.com" />
+    <script>
+      (() => {
+        try {
+          const raw = window.localStorage.getItem("publicStoreSettings");
+          if (!raw) return;
+
+          const parsed = JSON.parse(raw) || {};
+          const settings = parsed.settings || {};
+          const website = settings.website || {};
+          const storeName = String(website.storeName || "E-Commerce").trim();
+
+          if (storeName) {
+            document.title = storeName;
+          }
+
+          const rawIcon = String(
+            website.useLogoAsHeaderIcon
+              ? website.logoUrl || ""
+              : website.headerIconUrl || website.headerIcon || "",
+          ).trim();
+          if (!rawIcon) return;
+
+          const apiBase = "%VITE_API_URL%";
+          const normalizedApiBase =
+            apiBase && !apiBase.startsWith("%")
+              ? apiBase.replace(/\/+$/, "")
+              : "";
+
+          const resolvedIcon = (() => {
+            if (
+              rawIcon.startsWith("http://") ||
+              rawIcon.startsWith("https://") ||
+              rawIcon.startsWith("data:") ||
+              rawIcon.startsWith("blob:")
+            ) {
+              return rawIcon;
+            }
+
+            if (rawIcon.startsWith("//")) {
+              return `https:${rawIcon}`;
+            }
+
+            if (rawIcon.startsWith("/")) {
+              return normalizedApiBase ? `${normalizedApiBase}${rawIcon}` : rawIcon;
+            }
+
+            return normalizedApiBase
+              ? `${normalizedApiBase}/${rawIcon.replace(/^\/+/, "")}`
+              : rawIcon;
+          })();
+
+          const favicon =
+            document.querySelector("link[data-website-favicon='true']") ||
+            document.createElement("link");
+          favicon.setAttribute("rel", "icon");
+          favicon.setAttribute("data-website-favicon", "true");
+          favicon.setAttribute("href", resolvedIcon || "/vite.png");
+
+          if (!favicon.parentNode) {
+            document.head.appendChild(favicon);
+          }
+        } catch {
+          // Keep default browser branding when cached website settings are unavailable.
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <link rel="preload" href="/src/main.jsx" as="script" type="module">
+<script type="module" src="/src/main.jsx" defer></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      const isLocalhost =
+        location.hostname === "localhost" ||
+        location.hostname === "127.0.0.1" ||
+        location.hostname.endsWith(".local");
+
+      if (isLocalhost) {
+        // Vite dev server + service worker do not mix well; ensure it's removed.
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((regs) => Promise.all(regs.map((reg) => reg.unregister())))
+          .catch(() => undefined);
+      } else {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/service-worker.js");
+        });
+      }
+    }
+  </script>
+  </body>
+</html>
