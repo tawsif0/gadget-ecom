@@ -1,10 +1,4 @@
 import axios from "axios";
-import {
-  DEFAULT_ABOUT_CARDS,
-  DEFAULT_ABOUT_STORY_CONTENT,
-  DEFAULT_ABOUT_STORY_TITLE,
-  normalizeAboutCards,
-} from "./aboutSection";
 import { normalizeMarketingSettings } from "./marketingProfiles";
 
 const baseUrl = import.meta.env.VITE_API_URL;
@@ -16,7 +10,7 @@ const DEFAULT_NAV_LINK_PATHS = {
   "daily deals": "/shop?collection=deals",
   "top categories": "/#top-categories",
   "new arrivals": "/shop?collection=new-arrivals",
-  "buyer protection": "/faqs#buyer-protection",
+  "buyer protection": "/contact#faqs",
   "track order": "/track-order",
 };
 const LEGACY_CATALOG_TITLE = "{storeName} catalog with stock-aware shopping";
@@ -150,7 +144,7 @@ const normalizeStorefrontNavLinks = (value) => {
       (normalizedLabel === "daily deals" && inputPath === "/shop") ||
       (normalizedLabel === "top categories" && inputPath === "/shop") ||
       (normalizedLabel === "new arrivals" && inputPath === "/shop") ||
-      (normalizedLabel === "buyer protection" && inputPath === "/faqs") ||
+      (normalizedLabel === "buyer protection" && inputPath === "/contact") ||
       (normalizedLabel === "track order" && inputPath === "/contact")
         ? defaultPath
         : inputPath;
@@ -223,18 +217,6 @@ const DEFAULT_SETTINGS = {
     logo: "",
     address: "",
     footerText: "",
-  },
-  about: {
-    storyTitle: DEFAULT_ABOUT_STORY_TITLE,
-    storySubtitle: "",
-    storyContent: DEFAULT_ABOUT_STORY_CONTENT,
-    cards: [...DEFAULT_ABOUT_CARDS],
-    stat1Value: "99.9%",
-    stat1Label: "Uptime Guarantee",
-    stat2Value: "50K+",
-    stat2Label: "Active Merchants",
-    stat3Value: "24/7",
-    stat3Label: "Premium Support",
   },
   courier: {
     providerName: "",
@@ -469,27 +451,6 @@ const mergeSettings = (incoming = {}) => {
       enableFacebookLogin: Boolean(incoming?.integrations?.enableFacebookLogin),
     },
     invoice: { ...DEFAULT_SETTINGS.invoice, ...(incoming.invoice || {}) },
-    about: {
-      ...DEFAULT_SETTINGS.about,
-      ...(incoming.about || {}),
-      storyTitle:
-        String(incoming?.about?.storyTitle || "").trim() ||
-        DEFAULT_ABOUT_STORY_TITLE,
-      storySubtitle: String(incoming?.about?.storySubtitle || "").trim(),
-      storyContent:
-        String(incoming?.about?.storyContent || "").trim() ||
-        DEFAULT_ABOUT_STORY_CONTENT,
-      cards: normalizeAboutCards(incoming?.about?.cards || DEFAULT_ABOUT_CARDS),
-      stat1Value: String(incoming?.about?.stat1Value || "").trim() || "99.9%",
-      stat1Label:
-        String(incoming?.about?.stat1Label || "").trim() || "Uptime Guarantee",
-      stat2Value: String(incoming?.about?.stat2Value || "").trim() || "50K+",
-      stat2Label:
-        String(incoming?.about?.stat2Label || "").trim() || "Active Merchants",
-      stat3Value: String(incoming?.about?.stat3Value || "").trim() || "24/7",
-      stat3Label:
-        String(incoming?.about?.stat3Label || "").trim() || "Premium Support",
-    },
     courier: { ...DEFAULT_SETTINGS.courier, ...(incoming.courier || {}) },
     couriers: normalizeCourierMap(incoming.couriers || {}),
     shipping: {

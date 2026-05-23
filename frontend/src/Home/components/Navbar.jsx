@@ -27,9 +27,7 @@ const baseUrl = import.meta.env.VITE_API_URL;
 const navItems = [
   { label: "Home", to: "/" },
   { label: "Shop", to: "/shop" },
-  { label: "About", to: "/about" },
   { label: "Contact", to: "/contact" },
-  { label: "FAQs", to: "/faqs" },
 ];
 const CATEGORY_CACHE_KEY = "publicNavbarCategories";
 const CATEGORY_CACHE_TTL_MS = 5 * 60 * 1000;

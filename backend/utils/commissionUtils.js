@@ -1,4 +1,5 @@
-const COMMISSION_TYPES = ["inherit", "percentage", "fixed", "hybrid"];
+// Commission utilities removed as per requirement
+module.exports = {};
 
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);

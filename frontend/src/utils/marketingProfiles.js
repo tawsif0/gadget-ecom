@@ -5,9 +5,7 @@ const safeString = (value) => String(value || "").trim();
 const PAGE_TARGETS = [
   { key: "home", label: "Home", path: "/" },
   { key: "shop", label: "Shop", path: "/shop" },
-  { key: "about", label: "About", path: "/about" },
   { key: "contact", label: "Contact", path: "/contact" },
-  { key: "faq", label: "FAQ", path: "/faqs" },
   { key: "cart", label: "Cart", path: "/cart" },
   { key: "checkout", label: "Checkout", path: "/checkout" },
   {
@@ -396,13 +394,9 @@ export const resolveMarketingPageKey = (pathname = "") => {
 
   if (normalizedPath === "/" || normalizedPath === "/home") return "home";
   if (normalizedPath === "/shop") return "shop";
-  if (normalizedPath === "/about" || normalizedPath === "/about-us") {
-    return "about";
-  }
   if (normalizedPath === "/contact" || normalizedPath === "/contact-us") {
     return "contact";
   }
-  if (normalizedPath === "/faqs" || normalizedPath === "/faq") return "faq";
   if (normalizedPath === "/cart" || normalizedPath === "/added-to-cart") {
     return "cart";
   }

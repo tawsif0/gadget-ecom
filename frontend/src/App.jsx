@@ -160,13 +160,11 @@ const Home = lazy(() => import("./Home/pages/Home"));
 const MarketplaceHomeFloors = lazy(
   () => import("./Home/pages/MarketplaceHomeFloors"),
 );
-const FAQ = lazy(() => import("./Home/pages/FAQ"));
 const Contact = lazy(() => import("./Home/pages/Contact"));
 const ProductDetails = lazy(() => import("./Home/subPages/ProductDetails"));
 const ProductGrid = lazy(() => import("./Home/subPages/ProductGrid"));
 const AddToCart = lazy(() => import("./Home/components/AddToCart"));
 const CheckOut = lazy(() => import("./Home/components/CheckOut"));
-const AboutUs = lazy(() => import("./Home/pages/AboutUs"));
 const ThankYou = lazy(() => import("./Home/components/ThankYou"));
 const OrderTracking = lazy(() => import("./pages/OrderTracking"));
 const LandingPageView = lazy(() => import("./Home/pages/LandingPageView"));
@@ -314,22 +312,12 @@ function PublicLayout() {
             {/* Single product */}
             <Route path="/product/:id" element={<ProductDetails />} />
 
-            {/* About Us */}
-            <Route path="/about" element={<AboutUs />} />
-            <Route
-              path="/about-us"
-              element={<Navigate to="/about" replace />}
-            />
-            <Route path="/blog" element={<AboutUs />} />
-
             {/* Static pages */}
             <Route path="/contact" element={<Contact />} />
             <Route
               path="/contact-us"
               element={<Navigate to="/contact" replace />}
             />
-            <Route path="/faqs" element={<FAQ />} />
-            <Route path="/faq" element={<Navigate to="/faqs" replace />} />
             <Route
               path="/store/:slug"
               element={<Navigate to="/shop" replace />}
@@ -405,9 +393,7 @@ const resolveStaticPageTitle = (pathname) => {
     ["/shop", "Shop"],
     ["/compare", "Compare"],
     ["/wishlist", "Wishlist"],
-    ["/about", "About"],
     ["/contact", "Contact"],
-    ["/faqs", "FAQs"],
     ["/cart", "Cart"],
     ["/added-to-cart", "Cart"],
     ["/checkout", "Checkout"],

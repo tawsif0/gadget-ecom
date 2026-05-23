@@ -1045,9 +1045,8 @@ const ModuleSeoAnalytics = () => {
           ) : (
             <section className={sectionClass}>
               <p className="text-sm text-gray-600">
-                Global cards automatically apply to Home, Shop, About, Contact,
-                FAQ, Cart, Checkout, product pages, and the rest of the
-                storefront.
+                Global cards automatically apply to Home, Shop, Contact, Cart,
+                Checkout, product pages, and the rest of the storefront.
               </p>
               <div className="flex flex-wrap gap-2">
                 {pageTargetOptions.map((page) => (

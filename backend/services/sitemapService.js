@@ -79,9 +79,7 @@ const buildStaticUrlEntries = (storefrontBaseUrl, timestamp) => {
   const staticPaths = [
     "/",
     "/shop",
-    "/about",
     "/contact",
-    "/faqs",
     "/compare",
     "/wishlist",
     "/cart",

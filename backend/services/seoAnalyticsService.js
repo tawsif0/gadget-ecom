@@ -3,9 +3,7 @@ const safeString = (value) => String(value || "").trim();
 const PAGE_TARGET_DEFINITIONS = [
   { key: "home", label: "Home", path: "/" },
   { key: "shop", label: "Shop", path: "/shop" },
-  { key: "about", label: "About", path: "/about" },
   { key: "contact", label: "Contact", path: "/contact" },
-  { key: "faq", label: "FAQ", path: "/faqs" },
   { key: "cart", label: "Cart", path: "/cart" },
   { key: "checkout", label: "Checkout", path: "/checkout" },
   { key: "productDetails", label: "All Product Pages", path: "/product/:id" },

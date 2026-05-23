@@ -21,9 +21,7 @@ import { toPublicAssetUrl } from "../../utils/publicSettings";
 const quickLinks = [
   { name: "Home", path: "/" },
   { name: "Shop", path: "/shop" },
-  { name: "About Us", path: "/about" },
   { name: "Contact", path: "/contact" },
-  { name: "FAQs", path: "/faqs" },
 ];
 
 const policyLinks = [
@@ -186,50 +184,6 @@ const Footer = () => {
 
   return (
     <footer className="bg-white text-slate-900">
-      <div className="border-b border-slate-200 py-8 md:py-10">
-        <div className="site-shell">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                icon: <FaTruckFast className="text-xl" />,
-                title: "Fast Shipping",
-                text: "Smooth delivery flow",
-              },
-              {
-                icon: <FaArrowRotateLeft className="text-xl" />,
-                title: "Easy Returns",
-                text: "Simple return support",
-              },
-              {
-                icon: <FaGift className="text-xl" />,
-                title: "Offers And Discounts",
-                text: "Fresh deals for shoppers",
-              },
-              {
-                icon: <FaHeadset className="text-xl" />,
-                title: "Customer Support",
-                text: "Help when you need it",
-              },
-            ].map((feature) => (
-              <div
-                key={feature.title}
-                className="flex items-center gap-4 rounded-xl p-4 transition-all duration-300 hover:bg-slate-100"
-              >
-                <div className="rounded-lg bg-slate-100 p-3">
-                  {feature.icon}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900">
-                    {feature.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-600">{feature.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div className="py-12 md:py-16">
         <div className="site-shell">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">

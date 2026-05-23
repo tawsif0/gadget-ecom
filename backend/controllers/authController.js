@@ -242,7 +242,7 @@ const DEFAULT_NAV_LINK_PATHS = {
   "daily deals": "/shop?collection=deals",
   "top categories": "/#top-categories",
   "new arrivals": "/shop?collection=new-arrivals",
-  "buyer protection": "/faqs#buyer-protection",
+  "buyer protection": "/contact#faqs",
   "track order": "/track-order",
 };
 const LEGACY_CATALOG_TITLE = "{storeName} catalog with stock-aware shopping";
@@ -267,42 +267,6 @@ const DEFAULT_STOREFRONT_TRUST_BULLETS = [
   "Product stock only shows publicly when enabled",
   "Orders and purchases already sync inventory",
 ];
-const DEFAULT_ABOUT_STORY_TITLE = "Our Story";
-const DEFAULT_ABOUT_STORY_CONTENT =
-  "<p>E-Commerce was shaped to close the gap between a basic online catalog and a serious ecommerce operation with stronger discovery, cleaner checkout, and tighter inventory-aware storefront control.</p><p>The platform brings products, banners, categories, support, compare flows, wishlist behavior, and branded landing content into one polished office ecommerce system.</p><p>Our mission is simple: give shoppers a smoother buying journey while giving operators stronger control over stock, pricing, orders, and storefront presentation.</p>";
-const DEFAULT_ABOUT_CARDS = [
-  {
-    icon: "truck",
-    iconColor: "#ffffff",
-    backgroundColor: "#2563eb",
-    title: "Fast Shipping",
-    description: "<p>Quick delivery windows and a smoother order handoff.</p>",
-  },
-  {
-    icon: "shield",
-    iconColor: "#ffffff",
-    backgroundColor: "#16a34a",
-    title: "Secure Payment",
-    description:
-      "<p>Protected checkout flow with clearer payment handling.</p>",
-  },
-  {
-    icon: "refresh",
-    iconColor: "#ffffff",
-    backgroundColor: "#7c3aed",
-    title: "Easy Returns",
-    description:
-      "<p>Clear policies and a more reliable post-purchase flow.</p>",
-  },
-  {
-    icon: "package",
-    iconColor: "#ffffff",
-    backgroundColor: "#d97706",
-    title: "Quality Products",
-    description:
-      "<p>Catalog, stock, and order controls built for dependable selling.</p>",
-  },
-];
 
 const normalizeStorefrontNavLinks = (value) => {
   if (!Array.isArray(value)) {
@@ -320,7 +284,7 @@ const normalizeStorefrontNavLinks = (value) => {
       (normalizedLabel === "daily deals" && inputPath === "/shop") ||
       (normalizedLabel === "top categories" && inputPath === "/shop") ||
       (normalizedLabel === "new arrivals" && inputPath === "/shop") ||
-      (normalizedLabel === "buyer protection" && inputPath === "/faqs") ||
+      (normalizedLabel === "buyer protection" && inputPath === "/contact") ||
       (normalizedLabel === "track order" && inputPath === "/contact")
         ? defaultPath
         : inputPath;
@@ -472,96 +436,6 @@ const normalizeStorefrontSettings = (value = {}) => {
       storefront.footerCaption || "Built for Bangladesh marketplace operations",
     ).trim(),
     navQuickLinks: normalizeStorefrontNavLinks(storefront.navQuickLinks),
-  };
-};
-
-const normalizeAboutCards = (value = []) => {
-  const cards = Array.isArray(value) ? value : [];
-
-  return cards
-    .map((card, index) => {
-      const fallback =
-        DEFAULT_ABOUT_CARDS[index] ||
-        DEFAULT_ABOUT_CARDS[DEFAULT_ABOUT_CARDS.length - 1];
-      const icon = String(card?.icon || card?.iconKey || fallback.icon)
-        .trim()
-        .toLowerCase();
-      const title = String(card?.title || fallback.title).trim();
-      const description = String(
-        card?.description || fallback.description,
-      ).trim();
-      const iconColor =
-        String(card?.iconColor || fallback.iconColor).trim() ||
-        fallback.iconColor;
-      const backgroundColor =
-        String(
-          card?.backgroundColor ||
-            fallback.backgroundColor ||
-            (String(card?.color || "")
-              .toLowerCase()
-              .includes("blue")
-              ? "#2563eb"
-              : String(card?.color || "")
-                    .toLowerCase()
-                    .includes("green")
-                ? "#16a34a"
-                : String(card?.color || "")
-                      .toLowerCase()
-                      .includes("purple")
-                  ? "#7c3aed"
-                  : String(card?.color || "")
-                        .toLowerCase()
-                        .includes("amber") ||
-                      String(card?.color || "")
-                        .toLowerCase()
-                        .includes("yellow")
-                    ? "#d97706"
-                    : "#111827"),
-        ).trim() || fallback.backgroundColor;
-
-      if (!title && !description) {
-        return null;
-      }
-
-      return {
-        icon: [
-          "truck",
-          "shield",
-          "refresh",
-          "package",
-          "message",
-          "clock",
-          "heart",
-          "star",
-        ].includes(icon)
-          ? icon
-          : fallback.icon,
-        iconColor,
-        backgroundColor,
-        title: title || fallback.title,
-        description: description || fallback.description,
-      };
-    })
-    .filter(Boolean)
-    .slice(0, 4);
-};
-
-const normalizeAboutSettings = (value = {}) => {
-  const about = isPlainObject(value) ? value : {};
-
-  return {
-    storyTitle:
-      String(about.storyTitle || "").trim() || DEFAULT_ABOUT_STORY_TITLE,
-    storySubtitle: String(about.storySubtitle || "").trim(),
-    storyContent:
-      String(about.storyContent || "").trim() || DEFAULT_ABOUT_STORY_CONTENT,
-    cards: normalizeAboutCards(about.cards || DEFAULT_ABOUT_CARDS),
-    stat1Value: String(about.stat1Value || "").trim() || "99.9%",
-    stat1Label: String(about.stat1Label || "").trim() || "Uptime Guarantee",
-    stat2Value: String(about.stat2Value || "").trim() || "50K+",
-    stat2Label: String(about.stat2Label || "").trim() || "Active Merchants",
-    stat3Value: String(about.stat3Value || "").trim() || "24/7",
-    stat3Label: String(about.stat3Label || "").trim() || "Premium Support",
   };
 };
 
@@ -760,7 +634,6 @@ const buildPublicSettingsPayload = (
   const seo = settings?.seo || {};
   const website = settings?.website || {};
   const invoice = settings?.invoice || {};
-  const about = settings?.about || {};
   const courier = settings?.courier || {};
   const couriers = settings?.couriers || {};
   const shipping = settings?.shipping || {};
@@ -829,7 +702,6 @@ const buildPublicSettingsPayload = (
       address: String(invoice.address || "").trim(),
       footerText: String(invoice.footerText || "").trim(),
     },
-    about: normalizeAboutSettings(about),
     courier: {
       providerName: String(courier.providerName || "").trim(),
       apiBaseUrl: String(courier.apiBaseUrl || "").trim(),
@@ -1824,22 +1696,24 @@ exports.updateSettings = async (req, res) => {
       ? primaryAdmin.adminSettings
       : {};
     const incoming = isPlainObject(req.body) ? req.body : {};
+    const sanitizedIncoming = { ...incoming };
+    delete sanitizedIncoming.about;
     const currentControl = readMarketplaceControl(currentSettings);
-    const incomingMarketplace = isPlainObject(incoming.marketplace)
-      ? incoming.marketplace
+    const incomingMarketplace = isPlainObject(sanitizedIncoming.marketplace)
+      ? sanitizedIncoming.marketplace
       : {};
     const requestedMode = DEFAULT_MARKETPLACE_MODE;
     const requestedPublicStockSummaryInput =
       incomingMarketplace.publicStockSummaryEnabled !== undefined
         ? incomingMarketplace.publicStockSummaryEnabled
-        : incoming.publicStockSummaryEnabled;
+        : sanitizedIncoming.publicStockSummaryEnabled;
     const requestedPublicStockSummary =
       requestedPublicStockSummaryInput === undefined
         ? currentControl.publicStockSummaryEnabled
         : Boolean(requestedPublicStockSummaryInput);
     const requestedPublicStockCategoryIds = normalizeIdList(
-      incoming.publicStockCategoryIds !== undefined
-        ? incoming.publicStockCategoryIds
+      sanitizedIncoming.publicStockCategoryIds !== undefined
+        ? sanitizedIncoming.publicStockCategoryIds
         : incomingMarketplace.publicStockCategoryIds !== undefined
           ? incomingMarketplace.publicStockCategoryIds
           : currentSettings?.publicStockCategoryIds ||
@@ -1848,47 +1722,44 @@ exports.updateSettings = async (req, res) => {
     );
 
     const mergedWebsite = normalizeWebsiteSettings(
-      mergeSettingsSection(currentSettings, incoming, "website"),
+      mergeSettingsSection(currentSettings, sanitizedIncoming, "website"),
       { includePrivate: true },
     );
     const mergedSeo = normalizeSeoSettings(
-      mergeSettingsSection(currentSettings, incoming, "seo"),
+      mergeSettingsSection(currentSettings, sanitizedIncoming, "seo"),
     );
     const mergedSeoAnalytics = normalizeSeoAnalyticsSettings({
       ...currentSettings,
-      ...incoming,
+      ...sanitizedIncoming,
       website: mergedWebsite,
       seo: mergedSeo,
       seoAnalytics: mergeSettingsSection(
         currentSettings,
-        incoming,
+        sanitizedIncoming,
         "seoAnalytics",
       ),
     });
 
     const nextSettings = {
       ...currentSettings,
-      ...incoming,
+      ...sanitizedIncoming,
       website: mergedWebsite,
-      contact: mergeSettingsSection(currentSettings, incoming, "contact"),
-      social: mergeSettingsSection(currentSettings, incoming, "social"),
-      policies: mergeSettingsSection(currentSettings, incoming, "policies"),
+      contact: mergeSettingsSection(currentSettings, sanitizedIncoming, "contact"),
+      social: mergeSettingsSection(currentSettings, sanitizedIncoming, "social"),
+      policies: mergeSettingsSection(currentSettings, sanitizedIncoming, "policies"),
       seo: mergedSeo,
       integrations: normalizeAnalyticsSettings(
-        mergeSettingsSection(currentSettings, incoming, "integrations"),
+        mergeSettingsSection(currentSettings, sanitizedIncoming, "integrations"),
       ),
-      invoice: mergeSettingsSection(currentSettings, incoming, "invoice"),
-      about: normalizeAboutSettings(
-        mergeSettingsSection(currentSettings, incoming, "about"),
-      ),
-      courier: mergeSettingsSection(currentSettings, incoming, "courier"),
+      invoice: mergeSettingsSection(currentSettings, sanitizedIncoming, "invoice"),
+      courier: mergeSettingsSection(currentSettings, sanitizedIncoming, "courier"),
       couriers: normalizeCourierMap(
-        mergeSettingsSection(currentSettings, incoming, "couriers"),
+        mergeSettingsSection(currentSettings, sanitizedIncoming, "couriers"),
       ),
-      shipping: mergeSettingsSection(currentSettings, incoming, "shipping"),
-      locations: mergeSettingsSection(currentSettings, incoming, "locations"),
+      shipping: mergeSettingsSection(currentSettings, sanitizedIncoming, "shipping"),
+      locations: mergeSettingsSection(currentSettings, sanitizedIncoming, "locations"),
       storefront: normalizeStorefrontSettings({
-        ...mergeSettingsSection(currentSettings, incoming, "storefront"),
+        ...mergeSettingsSection(currentSettings, sanitizedIncoming, "storefront"),
       }),
       seoAnalytics: mergedSeoAnalytics,
       publicStockCategoryIds: requestedPublicStockCategoryIds,

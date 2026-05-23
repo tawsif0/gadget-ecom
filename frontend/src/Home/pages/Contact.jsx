@@ -12,6 +12,7 @@ import {
 import { toast } from "react-hot-toast";
 import usePublicSettings from "../../hooks/usePublicSettings";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import FaqQuestionsSection from "../components/FaqQuestionsSection";
 import SearchableSelect from "../../components/SearchableSelect";
 import RichTextEditor from "../../components/RichTextEditor";
 import { stripHtml } from "../../utils/richText";
@@ -496,6 +497,10 @@ const Contact = () => {
               ) : null}
             </div>
           </div>
+        </div>
+
+        <div className="mt-12 md:mt-16">
+          <FaqQuestionsSection id="faqs" />
         </div>
       </div>
     </section>
