@@ -9,9 +9,15 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
-import ConfirmModal from "../components/ConfirmModal";
-import SearchableSelect from "../components/SearchableSelect";
-import { useAuth } from "../hooks/useAuth";
+	import ConfirmModal from "../components/ConfirmModal";
+	import SearchableSelect from "../components/SearchableSelect";
+	import { useAuth } from "../hooks/useAuth";
+	import {
+	  getDefaultSelectedVariants,
+	  getEffectiveProductPricing,
+	  getResolvedSelectedVariants,
+	  normalizeSelectedVariantsPayload,
+	} from "../utils/productVariants";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -79,14 +85,87 @@ const toImageUrl = (value) => {
     : `${baseRoot}/${resolved}`;
 };
 
-const resolveProductCategoryId = (product) => {
-  const categoryValue = product?.category;
-  if (Array.isArray(categoryValue)) {
-    const first = categoryValue[0];
-    return String(first?._id || first || "");
-  }
-  return String(categoryValue?._id || categoryValue || "");
-};
+	const resolveProductCategoryId = (product) => {
+	  const categoryValue = product?.category;
+	  if (Array.isArray(categoryValue)) {
+	    const first = categoryValue[0];
+	    return String(first?._id || first || "");
+	  }
+	  return String(categoryValue?._id || categoryValue || "");
+	};
+
+	const resolveProductPriceSummary = (product) => {
+	  if (!product || typeof product !== "object") {
+	    return { defaultPrice: 0 };
+	  }
+
+	  const toNumberOrNull = (value) => {
+	    if (value === null || value === undefined) return null;
+	    if (typeof value === "string" && value.trim() === "") return null;
+	    const parsed = Number(value);
+	    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+	  };
+
+	  const marketplaceType = String(product?.marketplaceType || "simple")
+	    .trim()
+	    .toLowerCase();
+	  const priceType = String(product?.priceType || "single").trim().toLowerCase();
+
+	  const defaultSelectedVariants = normalizeSelectedVariantsPayload(
+	    getDefaultSelectedVariants(product),
+	  );
+	  const resolvedSelectedVariants = getResolvedSelectedVariants(
+	    product,
+	    defaultSelectedVariants,
+	  );
+
+	  if (
+	    marketplaceType === "variable" &&
+	    Array.isArray(product?.variations) &&
+	    product.variations.length > 0
+	  ) {
+	    const firstActiveVariation =
+	      product.variations.find((variation) => variation?.isActive !== false) ||
+	      product.variations[0];
+
+	    const hasSalePrice =
+	      firstActiveVariation?.salePrice !== null &&
+	      firstActiveVariation?.salePrice !== undefined &&
+	      String(firstActiveVariation.salePrice).trim() !== "";
+	    const salePrice = hasSalePrice
+	      ? toNumberOrNull(firstActiveVariation.salePrice)
+	      : null;
+	    const regularPrice = toNumberOrNull(firstActiveVariation?.price) ?? 0;
+	    const baseComparePrice =
+	      salePrice !== null && regularPrice > salePrice ? regularPrice : null;
+
+	    const pricing = getEffectiveProductPricing({
+	      basePrice: salePrice !== null ? salePrice : regularPrice,
+	      baseComparePrice,
+	      selectedVariants: resolvedSelectedVariants,
+	    });
+
+	    return { defaultPrice: Number(pricing.currentPrice || 0) };
+	  }
+
+	  const hasProductSalePrice =
+	    priceType === "best" &&
+	    product?.salePrice !== null &&
+	    product?.salePrice !== undefined &&
+	    String(product.salePrice).trim() !== "";
+	  const salePrice = hasProductSalePrice ? toNumberOrNull(product.salePrice) : null;
+	  const regularPrice = toNumberOrNull(product?.price) ?? 0;
+	  const baseComparePrice =
+	    salePrice !== null && regularPrice > salePrice ? regularPrice : null;
+
+	  const pricing = getEffectiveProductPricing({
+	    basePrice: salePrice !== null ? salePrice : regularPrice,
+	    baseComparePrice,
+	    selectedVariants: resolvedSelectedVariants,
+	  });
+
+	  return { defaultPrice: Number(pricing.currentPrice || 0) };
+	};
 
 const SelectionPanel = ({
   title,
@@ -1094,13 +1173,17 @@ const AdminCoupons = () => {
                               searchPlaceholder="Search products"
                               emptyText="Select category names first to load matching products."
                               getKey={(item) => String(item?._id || "")}
-                              renderContent={(item, checked) => {
-                                const imageUrl = toImageUrl(item?.images?.[0]);
-                                return (
-                                  <div className="flex min-w-0 items-start gap-3">
-                                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                                      {imageUrl ? (
-                                        <img
+	                              renderContent={(item, checked) => {
+	                                const imageUrl = toImageUrl(item?.images?.[0]);
+	                                const priceSummary = resolveProductPriceSummary(item);
+	                                const priceLabel = formatMoney(
+	                                  priceSummary.defaultPrice ?? priceSummary.minPrice,
+	                                );
+	                                return (
+	                                  <div className="flex min-w-0 items-start gap-3">
+	                                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+	                                      {imageUrl ? (
+	                                        <img
                                           src={imageUrl}
                                           alt={item?.title || "Product"}
                                           className="h-full w-full object-cover"
@@ -1128,17 +1211,17 @@ const AdminCoupons = () => {
                                           item?.category?.name ||
                                           "Catalog product"}
                                       </p>
-                                      <p
-                                        className={`mt-2 text-sm font-semibold ${
-                                          checked ? "text-white" : "text-slate-900"
-                                        }`}
-                                      >
-                                        {formatMoney(item?.price)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              }}
+	                                      <p
+	                                        className={`mt-2 text-sm font-semibold ${
+	                                          checked ? "text-white" : "text-slate-900"
+	                                        }`}
+	                                      >
+	                                        {priceLabel}
+	                                      </p>
+	                                    </div>
+	                                  </div>
+	                                );
+	                              }}
                               selectedLabel="selected"
                               columnsClassName="grid-cols-1"
                             />
@@ -1234,13 +1317,17 @@ const AdminCoupons = () => {
                       searchPlaceholder="Search combo products"
                       emptyText="No products found."
                       getKey={(item) => String(item?._id || "")}
-                      renderContent={(item, checked) => {
-                        const imageUrl = toImageUrl(item?.images?.[0]);
-                        return (
-                          <div className="flex min-w-0 items-start gap-3">
-                            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                              {imageUrl ? (
-                                <img
+	                      renderContent={(item, checked) => {
+	                        const imageUrl = toImageUrl(item?.images?.[0]);
+	                        const priceSummary = resolveProductPriceSummary(item);
+	                        const priceLabel = formatMoney(
+	                          priceSummary.defaultPrice ?? priceSummary.minPrice,
+	                        );
+	                        return (
+	                          <div className="flex min-w-0 items-start gap-3">
+	                            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+	                              {imageUrl ? (
+	                                <img
                                   src={imageUrl}
                                   alt={item?.title || "Product"}
                                   className="h-full w-full object-cover"
@@ -1268,18 +1355,18 @@ const AdminCoupons = () => {
                                   item?.category?.name ||
                                   "Catalog product"}
                               </p>
-                              <p
-                                className={`mt-2 text-sm font-semibold ${
-                                  checked ? "text-white" : "text-slate-900"
-                                }`}
-                              >
-                                {formatMoney(item?.price)}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      }}
-                    />
+	                              <p
+	                                className={`mt-2 text-sm font-semibold ${
+	                                  checked ? "text-white" : "text-slate-900"
+	                                }`}
+	                              >
+	                                {priceLabel}
+	                              </p>
+	                            </div>
+	                          </div>
+	                        );
+	                      }}
+	                    />
 
                     {selectedComboProducts.length > 0 ? (
                       <div className="rounded-2xl border border-slate-200 bg-white p-4">
