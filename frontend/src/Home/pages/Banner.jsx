@@ -146,7 +146,7 @@ const Banner = () => {
   const fetchBanners = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/banners/public?type=hero&page=home`);
+      const response = await fetch(`${baseUrl}/banners/public`);
       const data = await response.json();
 
       let bannersData = [];
@@ -376,8 +376,8 @@ const Banner = () => {
         </AnimatePresence>
 
         {/* Overlays */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-black/10" />
-        <div className="absolute inset-0 bg-linear-to-r from-black/40 via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/18 to-black/6" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/25 via-transparent to-black/25" />
       </div>
 
       {/* Content */}

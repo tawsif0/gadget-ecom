@@ -11,14 +11,9 @@ const categorySchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: [
-      "General",
-      "Popular",
-      "Hot deals",
-      "Best Selling",
-      "Latest",
-    ],
-    default: "General",
+    trim: true,
+    default: "Latest",
+    maxlength: [60, "Category type cannot exceed 60 characters"],
   },
   description: {
     type: String,

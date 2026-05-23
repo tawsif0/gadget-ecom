@@ -10,10 +10,7 @@ import {
   FiX,
   FiEye,
   FiHeart,
-  FiGrid,
-  FiList,
   FiShoppingBag,
-  FiShuffle,
   FiChevronDown,
   FiChevronUp,
 } from "react-icons/fi";
@@ -41,16 +38,16 @@ import {
   getPublicStockBadgeText,
   isPublicStockVisible,
 } from "../../utils/publicProduct";
-import { hasVariantOptionPricing } from "../../utils/productVariants";
 import {
-  COMPARE_LIMIT_MESSAGE,
-  MAX_COMPARE_ITEMS,
-  toggleCompareItem,
-} from "../../store/compareSlice";
-import { createProductSnapshot } from "../../utils/productSnapshot";
+  hasVariantOptionPricing,
+  getDefaultSelectedVariants,
+  getProductPricingForSelectedVariants,
+  normalizeSelectedVariantsPayload,
+} from "../../utils/productVariants";
 import SearchableSelect from "../../components/SearchableSelect";
 import StorefrontProductCard from "../components/StorefrontProductCard";
 import { useCart } from "../../context/CartContext";
+import TwoThumbRangeSlider from "../../components/TwoThumbRangeSlider";
 const INITIAL_DISPLAY_LIMIT = 20;
 
 const DEFAULT_STOREFRONT = getDefaultPublicSettings().storefront;
@@ -77,7 +74,6 @@ const ProductGrid = () => {
   const dispatch = useDispatch();
   const { isProductInCart: isProductInCartById, toggleProductInCart } =
     useCart();
-  const compareItems = useSelector((state) => state.compare.items || []);
   const wishlistItems = useSelector((state) => state.wishlist.items || []);
   const wishlistPendingIds = useSelector(selectWishlistPendingIds);
   const sortOptions = [
@@ -90,23 +86,19 @@ const ProductGrid = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCategoryType, setSelectedCategoryType] = useState("all");
-  const [selectedBrand, setSelectedBrand] = useState("");
   const [categoryName, setCategoryName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [collectionType, setCollectionType] = useState("all");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(INITIAL_DISPLAY_LIMIT);
   const [allProductsVisible, setAllProductsVisible] = useState(false);
-  const [viewMode, setViewMode] = useState(() => {
-    const savedViewMode = localStorage.getItem("shopViewMode");
-    return savedViewMode || "grid"; // Default to grid if nothing saved
-  });
   const [sortBy, setSortBy] = useState("featured");
   const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [absolutePriceRange, setAbsolutePriceRange] = useState([0, 10000]);
+  const [viewMode] = useState("grid");
   const [expandedFilters, setExpandedFilters] = useState({
     categories: true,
     types: true,
@@ -127,32 +119,6 @@ const ProductGrid = () => {
     }),
     [settings],
   );
-  const catalogBrands = React.useMemo(() => {
-    const mergedBrands = [];
-    const seen = new Set();
-
-    const addBrand = (brand) => {
-      const name = String(brand?.name || brand?.brand || "").trim();
-      if (!name) return;
-
-      const key = name.toLowerCase();
-      if (seen.has(key)) return;
-
-      seen.add(key);
-      mergedBrands.push({
-        _id: String(brand?._id || brand?.id || name).trim(),
-        name,
-        slug: String(brand?.slug || "").trim(),
-        description: String(brand?.description || "").trim(),
-        logoUrl: String(brand?.logoUrl || brand?.logo || "").trim(),
-      });
-    };
-
-    (Array.isArray(brands) ? brands : []).forEach(addBrand);
-    products.forEach((product) => addBrand({ name: product?.brand || "" }));
-
-    return mergedBrands;
-  }, [brands, products]);
   const catalogDataLayerSignatureRef = React.useRef("");
 
   React.useEffect(() => {
@@ -235,36 +201,27 @@ const ProductGrid = () => {
       ? product.category
       : product.category._id || null;
   };
-  const getProductDisplayPrice = (product) => {
+  const getProductFilterPrice = (product) => {
     if (!product) return 0;
     if (String(product.priceType || "single") === "tba") return 0;
 
+    const selectedVariants = normalizeSelectedVariantsPayload(
+      getDefaultSelectedVariants(product),
+    );
+    const combinedPricing = getProductPricingForSelectedVariants(
+      product,
+      selectedVariants,
+    );
     if (
-      String(product.marketplaceType || "simple") === "variable" &&
-      Array.isArray(product.variations) &&
-      product.variations.length > 0
+      combinedPricing?.isTba ||
+      combinedPricing?.currentPrice === null ||
+      combinedPricing?.currentPrice === undefined
     ) {
-      const variationPrices = product.variations
-        .filter((variation) => variation?.isActive !== false)
-        .map((variation) => {
-          const hasSalePrice =
-            variation?.salePrice !== null &&
-            variation?.salePrice !== undefined &&
-            String(variation.salePrice).trim() !== "";
-          if (hasSalePrice) {
-            const salePrice = Number(variation.salePrice);
-            if (Number.isFinite(salePrice) && salePrice >= 0) return salePrice;
-          }
-          const regularPrice = Number(variation?.price);
-          return Number.isFinite(regularPrice) && regularPrice >= 0
-            ? regularPrice
-            : null;
-        })
-        .filter((price) => price !== null);
-
-      if (variationPrices.length > 0) {
-        return Math.min(...variationPrices);
-      }
+      return 0;
+    }
+    const combinedPrice = Number(combinedPricing.currentPrice);
+    if (Number.isFinite(combinedPrice) && combinedPrice >= 0) {
+      return combinedPrice;
     }
 
     const hasSalePrice =
@@ -294,7 +251,7 @@ const ProductGrid = () => {
       };
     }
 
-    const currentPrice = getProductDisplayPrice(product);
+    const currentPrice = getProductFilterPrice(product);
     const previousPrice = Number(product?.price || currentPrice || 0);
     const hasDiscount =
       priceType === "best" &&
@@ -331,14 +288,6 @@ const ProductGrid = () => {
     return types;
   }, [visibleCategories]);
 
-  const isProductCompared = React.useCallback(
-    (productId) =>
-      compareItems.some(
-        (item) => String(item?._id || "") === String(productId || ""),
-      ),
-    [compareItems],
-  );
-
   const isProductWishlisted = React.useCallback(
     (productId) =>
       wishlistItems.some(
@@ -350,22 +299,6 @@ const ProductGrid = () => {
   const isProductInCart = React.useCallback(
     (productId) => isProductInCartById(productId),
     [isProductInCartById],
-  );
-
-  const handleToggleCompare = React.useCallback(
-    (product) => {
-      const snapshot = createProductSnapshot(product);
-      if (!snapshot) return;
-      const exists = compareItems.some(
-        (item) => String(item?._id || "") === String(snapshot._id || ""),
-      );
-      if (!exists && compareItems.length >= MAX_COMPARE_ITEMS) {
-        toast.error(COMPARE_LIMIT_MESSAGE);
-        return;
-      }
-      dispatch(toggleCompareItem(snapshot));
-    },
-    [compareItems, dispatch],
   );
 
   const handleToggleCart = React.useCallback(
@@ -392,10 +325,6 @@ const ProductGrid = () => {
     [dispatch],
   );
 
-  const handleSetViewMode = (mode) => {
-    setViewMode(mode);
-    localStorage.setItem("shopViewMode", mode);
-  };
   const collectionLabel =
     collectionType === "deals"
       ? "Daily Deals"
@@ -407,7 +336,6 @@ const ProductGrid = () => {
     const params = new URLSearchParams(location.search);
     const categoryParam = params.get("category");
     const typeParam = params.get("type");
-    const brandParam = params.get("brand");
     const searchParam = params.get("search");
     const collectionParam = String(params.get("collection") || "all")
       .trim()
@@ -426,12 +354,6 @@ const ProductGrid = () => {
       setSelectedCategoryType(typeParam);
     } else {
       setSelectedCategoryType("all");
-    }
-
-    if (brandParam) {
-      setSelectedBrand(String(brandParam).trim());
-    } else {
-      setSelectedBrand("");
     }
 
     if (searchParam) {
@@ -461,7 +383,6 @@ const ProductGrid = () => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-    fetchBrands();
   }, []);
 
   // Filter products when dependencies change
@@ -473,7 +394,6 @@ const ProductGrid = () => {
     products,
     selectedCategory,
     selectedCategoryType,
-    selectedBrand,
     searchTerm,
     collectionType,
     categories,
@@ -489,7 +409,6 @@ const ProductGrid = () => {
   }, [
     selectedCategory,
     selectedCategoryType,
-    selectedBrand,
     searchTerm,
     collectionType,
     priceRange,
@@ -516,16 +435,12 @@ const ProductGrid = () => {
         .replace(/^-+|-+$/g, "");
     const itemListId = collectionLabel
       ? `collection:${normalizeListKey(collectionType)}`
-      : selectedBrand
-        ? `brand:${normalizeListKey(selectedBrand)}`
-        : selectedCategory !== "all"
+      : selectedCategory !== "all"
           ? `category:${normalizeListKey(selectedCategory)}`
           : "shop";
     const itemListName = collectionLabel
       ? collectionLabel
-      : selectedBrand
-        ? `${selectedBrand} Products`
-        : selectedCategory !== "all" && categoryName
+      : selectedCategory !== "all" && categoryName
           ? `${categoryName} Products`
           : "All Products";
 
@@ -534,13 +449,11 @@ const ProductGrid = () => {
       pagePath,
       selectedCategory,
       selectedCategoryType,
-      selectedBrand,
       collectionType,
       searchTerm,
       sortBy,
       displayLimit,
       categoryIds: categories.map((category) => String(category?._id || "")),
-      brandNames: catalogBrands.map((brand) => String(brand?.name || "")),
       productIds: visibleCatalogProducts.map((product) =>
         String(product?._id || product?.id || ""),
       ),
@@ -565,12 +478,10 @@ const ProductGrid = () => {
           selectedCategoryName:
             selectedCategory === "all" ? "" : categoryName,
           selectedCategoryType,
-          selectedBrand,
           collectionType,
           searchTerm,
           sortBy,
           categories,
-          brands: catalogBrands,
           catalogProducts: filteredProducts,
           items: visibleCatalogProducts,
         }),
@@ -580,7 +491,6 @@ const ProductGrid = () => {
     return () => window.cancelAnimationFrame(frame);
   }, [
     categories,
-    catalogBrands,
     categoryName,
     collectionLabel,
     collectionType,
@@ -590,7 +500,6 @@ const ProductGrid = () => {
     location.search,
     products.length,
     searchTerm,
-    selectedBrand,
     selectedCategory,
     selectedCategoryType,
     settingsLoaded,
@@ -606,9 +515,18 @@ const ProductGrid = () => {
         setProducts(productsData);
 
         // Set initial price range based on products
-        const prices = productsData.map((p) => getProductDisplayPrice(p));
+        const prices = productsData
+          .map((p) => getProductFilterPrice(p))
+          .filter((value) => Number.isFinite(value) && value >= 0);
         const maxPrice = Math.max(...prices) > 0 ? Math.max(...prices) : 10000;
-        setPriceRange([0, maxPrice]);
+        const positivePrices = prices.filter((value) => value > 0);
+        const minPrice =
+          positivePrices.length > 0 ? Math.min(...positivePrices) : 0;
+        const resolvedMin = Number.isFinite(minPrice) ? minPrice : 0;
+        const resolvedMax = Number.isFinite(maxPrice) ? maxPrice : 10000;
+        const nextAbsolute = [resolvedMin, resolvedMax];
+        setAbsolutePriceRange(nextAbsolute);
+        setPriceRange(nextAbsolute);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -642,20 +560,6 @@ const ProductGrid = () => {
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
-    }
-  };
-
-  const fetchBrands = async () => {
-    try {
-      const response = await axios.get(`${baseUrl}/brands/public`);
-      if (response.data.success) {
-        setBrands(
-          Array.isArray(response.data.brands) ? response.data.brands : [],
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching brands:", error);
-      setBrands([]);
     }
   };
 
@@ -705,25 +609,12 @@ const ProductGrid = () => {
       });
     }
 
-    const normalizedBrand = String(selectedBrand || "")
-      .trim()
-      .toLowerCase();
-    if (normalizedBrand) {
-      filtered = filtered.filter(
-        (product) =>
-          String(product?.brand || "")
-            .trim()
-            .toLowerCase() === normalizedBrand,
-      );
-    }
-
     // Filter by search term
     const trimmedSearch = (searchTerm || "").trim().toLowerCase();
     if (trimmedSearch) {
       filtered = filtered.filter((product) => {
         const title = (product.title || "").toLowerCase();
         const description = (product.description || "").toLowerCase();
-        const brand = (product.brand || "").toLowerCase();
         const productType = (product.productType || "").toLowerCase();
         const marketplaceType = (product.marketplaceType || "").toLowerCase();
         const categoryNameText =
@@ -734,7 +625,6 @@ const ProductGrid = () => {
         return (
           title.includes(trimmedSearch) ||
           description.includes(trimmedSearch) ||
-          brand.includes(trimmedSearch) ||
           productType.includes(trimmedSearch) ||
           marketplaceType.includes(trimmedSearch) ||
           categoryNameText.toLowerCase().includes(trimmedSearch)
@@ -751,7 +641,7 @@ const ProductGrid = () => {
     // Filter by price range
     filtered = filtered.filter((product) => {
       if (String(product?.priceType || "single") === "tba") return true;
-      const price = getProductDisplayPrice(product);
+      const price = getProductFilterPrice(product);
       return price >= priceRange[0] && price <= priceRange[1];
     });
 
@@ -759,12 +649,12 @@ const ProductGrid = () => {
     switch (sortBy) {
       case "price-low":
         filtered.sort(
-          (a, b) => getProductDisplayPrice(a) - getProductDisplayPrice(b),
+          (a, b) => getProductFilterPrice(a) - getProductFilterPrice(b),
         );
         break;
       case "price-high":
         filtered.sort(
-          (a, b) => getProductDisplayPrice(b) - getProductDisplayPrice(a),
+          (a, b) => getProductFilterPrice(b) - getProductFilterPrice(a),
         );
         break;
       case "name":
@@ -856,15 +746,12 @@ const ProductGrid = () => {
   const resetFilters = () => {
     setSelectedCategory("all");
     setSelectedCategoryType("all");
-    setSelectedBrand("");
     setCategoryName("");
     setSearchTerm("");
     setSortBy("featured");
 
     // Reset price range to initial values
-    const prices = products.map((p) => getProductDisplayPrice(p));
-    const maxPrice = Math.max(...prices) > 0 ? Math.max(...prices) : 10000;
-    setPriceRange([0, maxPrice]);
+    setPriceRange(absolutePriceRange);
 
     // Clear URL parameters
     navigate("/shop", { replace: true });
@@ -1017,12 +904,11 @@ const ProductGrid = () => {
                 <h3 className="text-lg font-bold text-black">Filters</h3>
                 {(selectedCategory !== "all" ||
                   selectedCategoryType !== "all" ||
-                  selectedBrand ||
                   searchTerm ||
                   sortBy !== "featured" ||
                   priceRange[1] <
                     Math.max(
-                      ...products.map((p) => getProductDisplayPrice(p)),
+                      ...products.map((p) => getProductFilterPrice(p)),
                     )) && (
                   <button
                     onClick={resetFilters}
@@ -1146,28 +1032,13 @@ const ProductGrid = () => {
 
                 {expandedFilters.price && (
                   <div className="space-y-4">
-                    <div className="hidden items-center justify-between text-sm text-gray-600">
-                      <span>{priceRange[0].toFixed(2)} Tk</span>
-                      <span>{priceRange[1].toFixed(2)} Tk</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max={
-                        Math.max(
-                          ...products.map((p) => getProductDisplayPrice(p)),
-                        ) || 10000
-                      }
-                      value={priceRange[1]}
-                      onChange={(e) =>
-                        setPriceRange([priceRange[0], parseInt(e.target.value)])
-                      }
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    <TwoThumbRangeSlider
+                      min={absolutePriceRange[0]}
+                      max={absolutePriceRange[1]}
+                      step={1}
+                      value={priceRange}
+                      onChange={setPriceRange}
                     />
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>{priceRange[0].toFixed(2)} Tk</span>
-                      <span>{priceRange[1].toFixed(2)} Tk</span>
-                    </div>
                   </div>
                 )}
               </div>
@@ -1193,8 +1064,7 @@ const ProductGrid = () => {
                 >
                   <FiFilter /> Filters
                   {(selectedCategory !== "all" ||
-                    selectedCategoryType !== "all" ||
-                    selectedBrand) && (
+                    selectedCategoryType !== "all") && (
                     <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs text-black">
                       !
                     </span>
@@ -1202,30 +1072,6 @@ const ProductGrid = () => {
                 </button>
 
                 <div className="flex items-center gap-3">
-                  {/* View Mode */}
-                  <div className="hidden xs:flex items-center gap-1 bg-gray-100 rounded-full p-1">
-                    <button
-                      onClick={() => setViewMode("grid")}
-                      className={`p-1.5 sm:p-2 rounded-full ${
-                        viewMode === "grid"
-                          ? "bg-black text-white"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      <FiGrid className="text-sm sm:text-base" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode("list")}
-                      className={`p-1.5 sm:p-2 rounded-full ${
-                        viewMode === "list"
-                          ? "bg-black text-white"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      <FiList className="text-sm sm:text-base" />
-                    </button>
-                  </div>
-
                   {/* Sort Dropdown */}
                   <div className="w-[180px]">
                     <SearchableSelect
@@ -1249,9 +1095,7 @@ const ProductGrid = () => {
                 <h2 className="text-xl xs:text-2xl font-black tracking-tight text-gray-950">
                   {collectionLabel
                     ? collectionLabel
-                    : selectedBrand
-                      ? `${selectedBrand} Products`
-                      : selectedCategory !== "all" && categoryName
+                    : selectedCategory !== "all" && categoryName
                         ? `${categoryName} Products`
                         : "All Products"}
                 </h2>
@@ -1264,39 +1108,10 @@ const ProductGrid = () => {
                     <span className="ml-1 text-amber-900">{searchTerm}</span>
                   </span>
                 ) : null}
-                {selectedBrand ? (
-                  <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                    Brand:
-                    <span className="ml-1 text-slate-950">{selectedBrand}</span>
-                  </span>
-                ) : null}
               </div>
 
               {/* Desktop Controls */}
               <div className="hidden lg:flex items-center gap-4">
-                <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1">
-                  <button
-                    onClick={() => handleSetViewMode("grid")}
-                    className={`p-2 rounded-full ${
-                      viewMode === "grid"
-                        ? "bg-black text-white"
-                        : "text-gray-600"
-                    }`}
-                  >
-                    <FiGrid />
-                  </button>
-                  <button
-                    onClick={() => handleSetViewMode("list")}
-                    className={`p-2 rounded-full ${
-                      viewMode === "list"
-                        ? "bg-black text-white"
-                        : "text-gray-600"
-                    }`}
-                  >
-                    <FiList />
-                  </button>
-                </div>
-
                 <div className="w-[220px]">
                   <SearchableSelect
                     value={sortBy}
@@ -1319,7 +1134,6 @@ const ProductGrid = () => {
                 <p className="text-gray-600 mb-6 text-sm sm:text-base">
                   {selectedCategory !== "all" ||
                   selectedCategoryType !== "all" ||
-                  selectedBrand ||
                   searchTerm ||
                   collectionType !== "all"
                     ? "No products found with the current filters"
@@ -1332,8 +1146,8 @@ const ProductGrid = () => {
                   Reset Filters
                 </button>
               </div>
-            ) : viewMode === "grid" ? (
-              /* Grid View */
+            ) : (
+              /* Grid View (always) */
               <>
                 <div className="storefront-card-grid">
                   {filteredProducts.slice(0, displayLimit).map((product) => (
@@ -1377,8 +1191,9 @@ const ProductGrid = () => {
                   </div>
                 )}
               </>
-            ) : (
-              /* List View */
+            )}
+            {viewMode === "list" ? (
+              /* List View (disabled) */
               <>
                 <div className="grid gap-4 md:gap-6">
                   {filteredProducts
@@ -1386,7 +1201,6 @@ const ProductGrid = () => {
                     .map((product, index) => {
                       const categoryType = getCategoryTypeForProduct(product);
                       const pricing = getProductPricing(product);
-                      const compared = isProductCompared(product._id);
                       const productTypeLabel = String(
                         product.productType || "",
                       ).trim();
@@ -1546,9 +1360,9 @@ const ProductGrid = () => {
                                                   {`${Number(pricing.currentPrice || 0).toFixed(2)} Tk`}
                                                 </div>
                                               </div>
-                                            )}
-                                            <div className="flex items-center gap-2">
-                                              {showCardCartButton ? (
+                                              )}
+                                              <div className="flex items-center gap-2">
+                                                {showCardCartButton ? (
                                                 <button
                                                   type="button"
                                                   onClick={async (e) => {
@@ -1566,20 +1380,6 @@ const ProductGrid = () => {
                                                   <FiShoppingBag className="h-4 w-4" />
                                                 </button>
                                               ) : null}
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleToggleCompare(product);
-                                                }}
-                                                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border bg-white shadow-sm transition-colors ${
-                                                  compared
-                                                    ? "border-black bg-black text-white"
-                                                    : "border-gray-300 text-gray-600 hover:border-black hover:text-black"
-                                                }`}
-                                              >
-                                                <FiShuffle className="h-4 w-4" />
-                                              </button>
                                               <button
                                                 type="button"
                                                 onClick={async (e) => {
@@ -1663,7 +1463,7 @@ const ProductGrid = () => {
                   </div>
                 )}
               </>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -1770,26 +1570,13 @@ const ProductGrid = () => {
                 {/* Price Range in Mobile */}
                 <div>
                   <h4 className="font-semibold text-black mb-3">Price Range</h4>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>{priceRange[0].toFixed(2)} Tk</span>
-                      <span>{priceRange[1].toFixed(2)} Tk</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max={
-                        Math.max(
-                          ...products.map((p) => getProductDisplayPrice(p)),
-                        ) || 10000
-                      }
-                      value={priceRange[1]}
-                      onChange={(e) =>
-                        setPriceRange([priceRange[0], parseInt(e.target.value)])
-                      }
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
+                  <TwoThumbRangeSlider
+                    min={absolutePriceRange[0]}
+                    max={absolutePriceRange[1]}
+                    step={1}
+                    value={priceRange}
+                    onChange={setPriceRange}
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-4">

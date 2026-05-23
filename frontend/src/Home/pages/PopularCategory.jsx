@@ -5,30 +5,10 @@ import { FaFire, FaArrowRight, FaShoppingCart, FaClock } from "react-icons/fa";
 import { FiEye } from "react-icons/fi";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { getProductCardPricingDisplay } from "../../utils/productPricing";
 
 const baseUrl = import.meta.env.VITE_API_URL;
-const getPricing = (product) => {
-  const priceType = String(product?.priceType || "single");
-  if (priceType === "tba") {
-    return {
-      isTba: true,
-      hasDiscount: false,
-      currentPrice: null,
-      previousPrice: null,
-    };
-  }
-  const currentPrice =
-    Number(product?.salePrice) > 0
-      ? Number(product.salePrice)
-      : Number(product?.price || 0);
-  const previousPrice = Number(product?.price || 0);
-  const hasDiscount =
-    priceType === "best" &&
-    Number.isFinite(previousPrice) &&
-    Number.isFinite(currentPrice) &&
-    previousPrice > currentPrice;
-  return { isTba: false, hasDiscount, currentPrice, previousPrice };
-};
+const getPricing = (product) => getProductCardPricingDisplay(product);
 const getCardMetaLine = (product) =>
   product?.dimensions ? `Dim: ${product.dimensions}` : "";
 
@@ -386,10 +366,12 @@ const PopularCategory = () => {
                 const cardMetaLine = getCardMetaLine(product);
                 return (
                   <div
-                    key={product.id}
+                    key={product._id || product.id}
                     className="group relative flex h-full w-full basis-[calc(33.333%-0.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-lg sm:basis-[calc(33.333%-0.75rem)] md:basis-[calc(25%-0.75rem)] lg:basis-[calc(20%-0.75rem)]"
                     onClick={() => {
-                      navigate(`/product/${product.id}`);
+                      const productId = product?._id || product?.id;
+                      if (!productId) return;
+                      navigate(`/product/${productId}`);
                       window.scrollTo(0, 0);
                     }}
                   >
@@ -409,7 +391,9 @@ const PopularCategory = () => {
                           alt={product.title}
                           className="h-full w-full object-contain transition-transform duration-500"
                           onClick={() => {
-                            navigate(`/product/${product.id}`);
+                            const productId = product?._id || product?.id;
+                            if (!productId) return;
+                            navigate(`/product/${productId}`);
                             window.scrollTo(0, 0);
                           }}
                         />
@@ -425,11 +409,6 @@ const PopularCategory = () => {
                         <h3 className="line-clamp-2 cursor-pointer text-[13px] font-semibold leading-snug text-black transition-colors group-hover:text-gray-700 sm:text-sm">
                           {product.title}
                         </h3>
-                        {product.brand ? (
-                          <p className="text-xs text-gray-500 line-clamp-1">
-                            {`Brand: ${product.brand}`}
-                          </p>
-                        ) : null}
                         {cardMetaLine ? (
                           <div className="flex items-center gap-2">
                             {cardMetaLine ? (
@@ -472,7 +451,9 @@ const PopularCategory = () => {
 
                         <button
                           onClick={() => {
-                            navigate(`/product/${product.id}`);
+                            const productId = product?._id || product?.id;
+                            if (!productId) return;
+                            navigate(`/product/${productId}`);
                             window.scrollTo(0, 0);
                           }}
                           className="flex h-8 w-full items-center justify-center gap-2 rounded-none bg-gray-900 text-xs font-semibold text-white transition hover:bg-black sm:h-9 sm:text-sm"

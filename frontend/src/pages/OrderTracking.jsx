@@ -334,15 +334,15 @@ const OrderTracking = ({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <main className="min-h-screen bg-[#f9f9f9] text-[#1a1c1c] flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4"></div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#172839] mb-4"></div>
+          <h3 className="text-lg font-extrabold text-[#172839] mb-2">
             Tracking Order
           </h3>
-          <p className="text-gray-600">Loading order details...</p>
+          <p className="text-slate-600">Loading order details...</p>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -377,12 +377,12 @@ const OrderTracking = ({
       }
 
       return (
-        <div className="min-h-screen bg-gray-50 py-12">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="rounded-[28px] border border-gray-200 bg-white p-8 shadow-sm">
+        <main className="min-h-screen bg-[#f9f9f9] text-[#1a1c1c] py-12">
+          <div className="site-shell">
+            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
               <button
                 onClick={handleBack}
-                className="flex items-center gap-2 text-gray-600 hover:text-black mb-8 transition-colors group"
+                className="flex items-center gap-2 text-slate-600 hover:text-[#f47c20] mb-8 transition-colors group"
               >
                 <FiChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                 <span className="font-medium">
@@ -391,13 +391,13 @@ const OrderTracking = ({
               </button>
 
               <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
                   Order Tracking
                 </p>
-                <h1 className="mt-3 text-3xl font-black text-black">
+                <h1 className="mt-3 text-3xl font-extrabold text-[#172839]">
                   Enter your order number
                 </h1>
-                <p className="mt-3 text-gray-600 leading-7">
+                <p className="mt-3 text-slate-600 leading-7">
                   Track delivery progress, payment status, and ordered products
                   from a single tracking screen.
                 </p>
@@ -413,12 +413,12 @@ const OrderTracking = ({
                       }
                     }}
                     placeholder="Enter order number like ORD-1769584921417-5450"
-                    className="flex-1 rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-black focus:outline-none"
+                    className="flex-1 rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#172839] focus:ring-4 focus:ring-[#172839]/10"
                   />
                   <button
                     type="button"
                     onClick={submitTrackingLookup}
-                    className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-900"
+                    className="rounded-lg bg-[#f47c20] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#f47c20]/20 transition-transform hover:scale-105 active:scale-95"
                   >
                     Track Order
                   </button>
@@ -426,7 +426,7 @@ const OrderTracking = ({
               </div>
             </div>
           </div>
-        </div>
+        </main>
       );
     }
 
@@ -456,28 +456,30 @@ const OrderTracking = ({
           </div>
         </div>
       ) : (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[#f9f9f9] text-[#1a1c1c] py-12">
+        <div className="site-shell">
           <div className="text-center">
-            <div className="text-6xl mb-6">📦</div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+              <FiPackage className="h-8 w-8 text-[#f47c20]" />
+            </div>
+            <h1 className="text-3xl font-extrabold text-[#172839] mb-4">
               Order Not Found
             </h1>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto">
+            <p className="text-slate-600 mb-8 max-w-md mx-auto">
               {error ||
                 "We couldn't find an order with that number. Please check the order number and try again."}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => navigate("/")}
-                className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                className="px-6 py-3 bg-[#f47c20] text-white rounded-full font-bold shadow-lg shadow-[#f47c20]/20 transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
               >
                 <FiHome className="w-4 h-4" />
                 Back to Home
               </button>
               <button
                 onClick={() => navigate("/shop")}
-                className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                className="px-6 py-3 border border-slate-200 rounded-full font-bold text-slate-700 transition-colors hover:border-[#f47c20] hover:text-[#f47c20] flex items-center justify-center gap-2"
               >
                 <FiShoppingBag className="w-4 h-4" />
                 Continue Shopping
@@ -485,7 +487,7 @@ const OrderTracking = ({
             </div>
           </div>
         </div>
-      </div>
+      </main>
       )
     );
   }
@@ -499,30 +501,30 @@ const OrderTracking = ({
   const shippingSourceLabel = formatShippingSourceLabel(order);
 
   return (
-    <div className={isDashboard ? "w-full space-y-6 p-1 md:p-2" : "min-h-screen bg-gray-50 py-8 md:py-12"}>
-      <div className={isDashboard ? "space-y-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
+    <div className={isDashboard ? "w-full space-y-6 p-1 md:p-2" : "min-h-screen bg-[#f9f9f9] text-[#1a1c1c] py-8 md:py-12"}>
+      <div className={isDashboard ? "space-y-6" : "site-shell"}>
         {!isDashboard && (
           <div className="mb-8">
             <button
               onClick={handleBack}
-              className="group mb-6 flex items-center gap-2 text-gray-600 transition-colors hover:text-black"
+              className="group mb-6 flex items-center gap-2 text-slate-600 transition-colors hover:text-[#f47c20]"
             >
               <FiChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
               <span className="font-medium">Back to Home</span>
             </button>
 
             <div className="mb-8 text-center">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
                 <StatusIcon
                   className="w-8 h-8"
                   style={{ color: statusInfo.color }}
                 />
               </div>
-              <h1 className="mb-3 mt-4 text-2xl font-bold text-black sm:text-3xl md:text-4xl">
+              <h1 className="mb-3 mt-4 text-2xl font-extrabold text-[#172839] sm:text-3xl md:text-4xl">
                 Order Tracking
               </h1>
               <div className="flex items-center justify-center gap-4">
-                <p className="text-gray-600">
+                <p className="text-slate-600">
                   Tracking order:{" "}
                   <span className="font-semibold text-black">
                     {order.orderNumber}

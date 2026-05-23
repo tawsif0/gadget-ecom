@@ -3123,7 +3123,6 @@ exports.getAdminProductReports = async (req, res) => {
     const filterProductId = String(req.query.productId || "").trim();
     const filterCategoryId = String(req.query.categoryId || "").trim();
     const filterCategoryType = String(req.query.categoryType || "").trim();
-    const filterBrand = String(req.query.brand || "").trim();
 
     const match = {
       orderStatus: { $nin: ["cancelled", "returned"] },
@@ -3161,9 +3160,6 @@ exports.getAdminProductReports = async (req, res) => {
           return filterCategoryId;
         }
       })();
-    }
-    if (filterBrand) {
-      postLookupMatch["product.brand"] = filterBrand;
     }
     if (filterCategoryType) {
       postLookupMatch["category.type"] = filterCategoryType;

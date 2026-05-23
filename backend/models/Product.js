@@ -262,14 +262,9 @@ const productSchema = new mongoose.Schema({
   // ADDED: Product type field
   productType: {
     type: String,
-    enum: [
-      "General",
-      "Popular",
-      "Hot deals",
-      "Best Selling",
-      "Latest",
-    ],
-    default: "General",
+    trim: true,
+    default: "Latest",
+    maxlength: 60,
   },
   marketplaceType: {
     type: String,

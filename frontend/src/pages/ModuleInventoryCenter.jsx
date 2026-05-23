@@ -296,7 +296,7 @@ const ModuleInventoryCenter = () => {
                         SKU: {product?.sku || "Not set"} • {product?.brand || "No brand"}
                       </p>
                       <p className="mt-1 text-xs text-gray-500">
-                        {product?.category?.name || product?.productType || "General"}
+                        {product?.category?.name || product?.productType || "Latest"}
                       </p>
                     </div>
                   </div>

@@ -170,10 +170,6 @@ const SelectionPanel = ({
 );
 
 const CATEGORY_TYPE_OPTIONS = [
-  "General",
-  "Popular",
-  "Hot deals",
-  "Best Selling",
   "Latest",
 ];
 

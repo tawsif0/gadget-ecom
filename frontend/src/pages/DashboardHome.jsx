@@ -32,6 +32,7 @@ import {
   isSuperAdminUser,
   normalizeMarketplaceMode,
 } from "../utils/dashboardAccess";
+import CategoryTypeSelect from "../components/CategoryTypeSelect";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -99,14 +100,12 @@ const DashboardHome = ({ user, onTabChange }) => {
   const [analyticsError, setAnalyticsError] = useState("");
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [analyticsFilters, setAnalyticsFilters] = useState({
     from: "",
     to: "",
     productId: "",
     categoryId: "",
     categoryType: "",
-    brand: "",
   });
   const [groupBy, setGroupBy] = useState("product");
   const [analyticsPayload, setAnalyticsPayload] = useState({
@@ -123,21 +122,18 @@ const DashboardHome = ({ user, onTabChange }) => {
   const loadAnalyticsOptions = useCallback(async () => {
     try {
       setAnalyticsOptionsLoading(true);
-      const [productResponse, categoryResponse, brandResponse] = await Promise.all([
+      const [productResponse, categoryResponse] = await Promise.all([
         axios.get(`${baseUrl}/products`, { headers: getAuthHeaders() }),
         axios.get(`${baseUrl}/categories`, { headers: getAuthHeaders() }),
-        axios.get(`${baseUrl}/brands`, { headers: getAuthHeaders() }),
       ]);
 
       setProducts(Array.isArray(productResponse.data?.products) ? productResponse.data.products : []);
       setCategories(
         Array.isArray(categoryResponse.data?.categories) ? categoryResponse.data.categories : [],
       );
-      setBrands(Array.isArray(brandResponse.data?.brands) ? brandResponse.data.brands : []);
     } catch (error) {
       setProducts([]);
       setCategories([]);
-      setBrands([]);
     } finally {
       setAnalyticsOptionsLoading(false);
     }
@@ -156,7 +152,6 @@ const DashboardHome = ({ user, onTabChange }) => {
             productId: filters.productId || undefined,
             categoryId: filters.categoryId || undefined,
             categoryType: filters.categoryType || undefined,
-            brand: filters.brand || undefined,
           },
         });
 
@@ -187,15 +182,6 @@ const DashboardHome = ({ user, onTabChange }) => {
     loadRevenueAnalytics();
   }, [isAdmin, isSuperAdmin, loadAnalyticsOptions, loadRevenueAnalytics]);
 
-  const categoryTypeOptions = useMemo(() => {
-    const types = new Set();
-    categories.forEach((cat) => {
-      const type = String(cat?.type ?? cat?.categoryType ?? cat?.productType ?? "").trim();
-      if (type) types.add(type);
-    });
-    return Array.from(types).sort((a, b) => a.localeCompare(b));
-  }, [categories]);
-
   const productSelectOptions = useMemo(
     () =>
       products.map((product) => ({
@@ -210,25 +196,15 @@ const DashboardHome = ({ user, onTabChange }) => {
       categories.map((cat) => ({
         value: String(cat?._id || ""),
         label: `${String(cat?.name || "Unnamed")} (${String(
-          cat?.type ?? cat?.categoryType ?? cat?.productType ?? "General",
+          cat?.type ?? cat?.categoryType ?? cat?.productType ?? "Latest",
         )})`,
       })),
     [categories],
   );
 
-  const brandSelectOptions = useMemo(
-    () =>
-      brands
-        .map((brand) => String(brand?.name || "").trim())
-        .filter(Boolean)
-        .map((name) => ({ value: name, label: name })),
-    [brands],
-  );
-
   const pieData = useMemo(() => {
     const keyForRow = (row) => {
       if (groupBy === "category") return String(row?.categoryName || "Unassigned");
-      if (groupBy === "brand") return String(row?.brand || "Unassigned");
       if (groupBy === "categoryType") return String(row?.categoryType || "Unassigned");
       return String(row?.title || "Product");
     };
@@ -663,47 +639,19 @@ const DashboardHome = ({ user, onTabChange }) => {
                       <span className="text-xs font-medium text-gray-600 mb-1 block">
                         Category Type
                       </span>
-                      <select
+                      <CategoryTypeSelect
                         value={analyticsFilters.categoryType}
-                        onChange={(event) =>
+                        onChange={(value) =>
                           setAnalyticsFilters((prev) => ({
                             ...prev,
-                            categoryType: event.target.value,
+                            categoryType: value,
                           }))
                         }
-                        disabled={analyticsOptionsLoading}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
-                      >
-                        <option value="">All types</option>
-                        {categoryTypeOptions.map((type) => (
-                          <option key={type} value={type}>
-                            {type}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-medium text-gray-600 mb-1 block">
-                        Brand
-                      </span>
-                      <select
-                        value={analyticsFilters.brand}
-                        onChange={(event) =>
-                          setAnalyticsFilters((prev) => ({
-                            ...prev,
-                            brand: event.target.value,
-                          }))
-                        }
-                        disabled={analyticsOptionsLoading}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
-                      >
-                        <option value="">All brands</option>
-                        {brandSelectOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                        includeAllOption
+                        allLabel="All types"
+                        placeholder="All types"
+                        buttonClassName="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+                      />
                     </label>
                   </div>
 
@@ -720,7 +668,6 @@ const DashboardHome = ({ user, onTabChange }) => {
                         <option value="product">Product</option>
                         <option value="category">Category</option>
                         <option value="categoryType">Category Type</option>
-                        <option value="brand">Brand</option>
                       </select>
                     </label>
 
@@ -742,7 +689,6 @@ const DashboardHome = ({ user, onTabChange }) => {
                             productId: "",
                             categoryId: "",
                             categoryType: "",
-                            brand: "",
                           };
                           setAnalyticsFilters(cleared);
                           loadRevenueAnalytics(cleared);

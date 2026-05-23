@@ -47,7 +47,6 @@ const ModuleInventoryCenter = React.lazy(
   () => import("./ModuleInventoryCenter"),
 );
 const ModuleAccounts = React.lazy(() => import("./ModuleAccounts"));
-const ModuleBrands = React.lazy(() => import("./ModuleBrands"));
 const ModuleBusinessReports = React.lazy(
   () => import("./ModuleBusinessReports"),
 );
@@ -198,8 +197,6 @@ const TabContent = React.memo(
         return user?.userType === "admin" ? <ModuleInventoryCenter /> : null;
       case "module-accounts":
         return user?.userType === "admin" ? <ModuleAccounts /> : null;
-      case "module-brands":
-        return user?.userType === "admin" ? <ModuleBrands /> : null;
       case "module-admin-users":
         return user?.userType === "admin" ? <ModuleAdminUsers /> : null;
       case "module-super-admin":

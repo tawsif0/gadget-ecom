@@ -1,10 +1,12 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useMemo, useState } from "react";
 import axios from "axios";
 import {
   FiCheckCircle,
+  FiClock,
+  FiHeadphones,
   FiMail,
   FiMapPin,
-  FiMessageSquare,
   FiPhone,
   FiSend,
   FiUser,
@@ -12,18 +14,18 @@ import {
 import { toast } from "react-hot-toast";
 import usePublicSettings from "../../hooks/usePublicSettings";
 import { useThemeColors } from "../../hooks/useThemeColors";
-import FaqQuestionsSection from "../components/FaqQuestionsSection";
 import SearchableSelect from "../../components/SearchableSelect";
 import RichTextEditor from "../../components/RichTextEditor";
 import { stripHtml } from "../../utils/richText";
+import FaqQuestionsSection from "../components/FaqQuestionsSection";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 
 const subjectOptions = [
-  { value: "support", label: "Technical Support" },
-  { value: "sales", label: "Sales Inquiry" },
-  { value: "billing", label: "Billing Question" },
-  { value: "partnership", label: "Partnership" },
+  { value: "order", label: "Order Inquiry" },
+  { value: "support", label: "Product Support" },
+  { value: "warranty", label: "Warranty Claim" },
+  { value: "wholesale", label: "Wholesale" },
   { value: "other", label: "Other" },
 ];
 
@@ -57,31 +59,6 @@ const getMapEmbedUrl = (addressLink, address = "") => {
   const directLink = withProtocol(addressLink);
   const fallbackQuery = String(address || "").trim();
 
-  const getCoordinateMatch = (value) => {
-    const source = String(value || "");
-    const atMatch = source.match(
-      /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)(?:,(\d+(?:\.\d+)?)z?)?/i,
-    );
-    if (atMatch) {
-      return {
-        lat: atMatch[1],
-        lng: atMatch[2],
-        zoom: atMatch[3] || "",
-      };
-    }
-
-    const dataMatch = source.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/i);
-    if (dataMatch) {
-      return {
-        lat: dataMatch[1],
-        lng: dataMatch[2],
-        zoom: "",
-      };
-    }
-
-    return null;
-  };
-
   if (!directLink) {
     return fallbackQuery
       ? `https://www.google.com/maps?q=${encodeURIComponent(fallbackQuery)}&output=embed`
@@ -103,36 +80,14 @@ const getMapEmbedUrl = (addressLink, address = "") => {
       return directLink;
     }
 
-    const coordinates = getCoordinateMatch(directLink);
-    if (coordinates?.lat && coordinates?.lng) {
-      const query = `${coordinates.lat},${coordinates.lng}`;
-      const zoomPart = coordinates.zoom
-        ? `&z=${encodeURIComponent(coordinates.zoom)}`
-        : "";
-      return `https://www.google.com/maps?q=${encodeURIComponent(query)}${zoomPart}&output=embed`;
-    }
-
-    let query =
-      url.searchParams.get("q") ||
-      url.searchParams.get("query") ||
-      url.searchParams.get("destination") ||
-      "";
-
-    if (!query && url.pathname.includes("/place/")) {
-      query = decodeURIComponent(
-        url.pathname.split("/place/")[1]?.split("/")[0] || "",
-      ).replace(/\+/g, " ");
-    }
-
-    if (!query) {
-      query = fallbackQuery;
-    }
-
+    const query = url.searchParams.get("q") || "";
     if (query) {
       return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
     }
 
-    return fallbackMapUrl;
+    return fallbackQuery
+      ? `https://www.google.com/maps?q=${encodeURIComponent(fallbackQuery)}&output=embed`
+      : fallbackMapUrl;
   } catch {
     return fallbackQuery
       ? `https://www.google.com/maps?q=${encodeURIComponent(fallbackQuery)}&output=embed`
@@ -148,11 +103,12 @@ const Contact = () => {
   const storeName =
     String(website?.storeName || "E-Commerce").trim() || "E-Commerce";
 
+  const [focusedField, setFocusedField] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    subject: "",
+    subject: "order",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -163,9 +119,7 @@ const Contact = () => {
       email: String(contact?.email || "support@marketplace.com.bd").trim(),
       phone1: String(contact?.phone1 || "+880 1700-000000").trim(),
       phone2: String(contact?.phone2 || "").trim(),
-      address:
-        stripHtml(contact?.address) ||
-        "Shop 12, Level 3, Bashundhara City, Panthapath, Dhaka 1215, Bangladesh",
+      address: stripHtml(contact?.address) || "Dhaka 1215, Bangladesh",
       addressLink: getMapLinkUrl(
         contact?.addressLink,
         stripHtml(contact?.address),
@@ -174,27 +128,6 @@ const Contact = () => {
     }),
     [contact],
   );
-
-  const infoCards = [
-    {
-      icon: <FiMail className="text-xl" />,
-      title: "Email Support",
-      value: contactInfo.email,
-      href: `mailto:${contactInfo.email}`,
-    },
-    {
-      icon: <FiPhone className="text-xl" />,
-      title: "Call Us",
-      value: contactInfo.phone1,
-      href: `tel:${contactInfo.phone1.replace(/\s+/g, "")}`,
-    },
-    {
-      icon: <FiMapPin className="text-xl" />,
-      title: "Visit Us",
-      value: contactInfo.address,
-      href: contactInfo.addressLink,
-    },
-  ];
 
   const handleChange = (event) => {
     setFormData((current) => ({
@@ -207,7 +140,6 @@ const Contact = () => {
     event.preventDefault();
 
     const payload = {
-      ...formData,
       name: String(formData.name || "").trim(),
       email: String(formData.email || "").trim(),
       phone: String(formData.phone || "").trim(),
@@ -233,7 +165,6 @@ const Contact = () => {
         `${baseUrl}/contact-submissions`,
         payload,
       );
-
       if (!response.data?.success) {
         toast.error("Failed to send your message");
         return;
@@ -245,10 +176,10 @@ const Contact = () => {
         name: "",
         email: "",
         phone: "",
-        subject: "",
+        subject: "order",
         message: "",
       });
-      window.setTimeout(() => setIsSubmitted(false), 5000);
+      window.setTimeout(() => setIsSubmitted(false), 3500);
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Failed to send your message",
@@ -258,172 +189,174 @@ const Contact = () => {
     }
   };
 
+  const labelClass = (key) =>
+    `text-xs font-bold tracking-wide ${
+      focusedField === key
+        ? "text-[var(--brand-theme-color)]"
+        : "text-slate-600"
+    }`;
+
   return (
-    <section className="min-h-screen bg-white">
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-white opacity-5" />
-        <div className="site-container relative py-12 md:py-15">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="mb-4 text-3xl font-bold tracking-tight text-black md:text-4xl lg:text-5xl">
-              Get In{" "}
-              <span className="bg-linear-to-r from-gray-800 to-black bg-clip-text text-transparent">
-                Touch
-              </span>
-            </h1>
-            <p className="mx-auto mb-8 max-w-2xl text-base text-gray-600 md:text-lg">
-              Send your question directly to the {storeName} team. Every form
-              submission appears in the admin contacted-users list right away,
-              just like the reference ecommerce site.
-            </p>
-          </div>
+    <main className="bg-[#f9f9f9] text-[#1a1c1c]">
+      <section className="bg-white py-16 md:py-24">
+        <div className="site-shell text-center">
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#172839] md:text-5xl">
+            Get <span className="text-(--brand-theme-color)">in Touch</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-slate-600 md:text-lg">
+            We're here to help with any questions about our products or your
+            order. Our team typically responds within 24 hours.
+          </p>
         </div>
-      </div>
+      </section>
 
-      <div className="site-container pb-16">
-        <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 md:mb-20">
-          <div className="space-y-8">
-            <div className="rounded-3xl border border-gray-200 bg-linear-to-br from-white to-gray-50 p-6 shadow-xl md:p-8">
-              <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:gap-4">
-                <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full md:h-12 md:w-12"
-                  style={{
-                    backgroundColor: themeColor,
-                    color: buttonTextColor,
-                  }}
-                >
-                  <FiMessageSquare className="text-lg md:text-xl" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-black md:text-2xl">
-                    Send us a message
-                  </h2>
-                  <p className="text-sm text-gray-600 md:text-base">
-                    Your message appears in the admin contacted list right away.
-                  </p>
-                </div>
-              </div>
-
+      <section className="py-14 md:py-20">
+        <div className="site-shell">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
+            <div className="lg:col-span-7 rounded-xl bg-white p-7 shadow-[0_2px_12px_rgba(0,0,0,0.08)] md:p-10">
               {isSubmitted ? (
-                <div className="py-12 text-center">
-                  <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-                    <FiCheckCircle className="text-4xl text-green-600" />
+                <div className="py-10 text-center">
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                    <FiCheckCircle className="text-3xl text-emerald-600" />
                   </div>
-                  <h3 className="mb-3 text-2xl font-bold text-black">
-                    Message Sent Successfully
-                  </h3>
-                  <p className="mb-6 text-gray-600">
-                    Thank you for contacting us. The admin team has already
-                    received your message.
+                  <h2 className="text-2xl font-bold text-[#172839]">
+                    Message Sent!
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
+                    Thanks for reaching out. We will reply as soon as possible.
                   </p>
                   <button
                     type="button"
                     onClick={() => setIsSubmitted(false)}
-                    className="app-btn-primary rounded-full px-6 py-3 font-medium transition-colors hover:scale-105"
+                    className="app-btn-primary mt-6 rounded-full px-8 py-3 text-sm font-semibold shadow-lg transition hover:scale-105 hover:opacity-95"
+                    style={{
+                      color: buttonTextColor,
+                      backgroundColor: themeColor,
+                    }}
                   >
                     Send Another Message
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <FiUser className="text-gray-400" /> Full Name *
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className={labelClass("name")} htmlFor="name">
+                        Name
                       </label>
                       <input
-                        type="text"
+                        id="name"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        required
-                        className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 transition-all duration-300 focus:border-black focus:outline-none focus:ring-2 focus:ring-black/10"
+                        onFocus={() => setFocusedField("name")}
+                        onBlur={() => setFocusedField("")}
                         placeholder="John Doe"
+                        className="h-12 w-full rounded-lg border border-slate-200 bg-white px-4 outline-none transition focus:border-[#172839] focus:ring-4 focus:ring-[#172839]/10"
+                        required
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Email Address *
+                    <div className="flex flex-col gap-1">
+                      <label className={labelClass("email")} htmlFor="email">
+                        Email
                       </label>
                       <input
+                        id="email"
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        required
-                        className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 transition-all duration-300 focus:border-black focus:outline-none focus:ring-2 focus:ring-black/10"
+                        onFocus={() => setFocusedField("email")}
+                        onBlur={() => setFocusedField("")}
                         placeholder="john@example.com"
+                        className="h-12 w-full rounded-lg border border-slate-200 bg-white px-4 outline-none transition focus:border-[#172839] focus:ring-4 focus:ring-[#172839]/10"
+                        required
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className={labelClass("phone")} htmlFor="phone">
                         Phone Number
                       </label>
                       <input
-                        type="tel"
+                        id="phone"
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 transition-all duration-300 focus:border-black focus:outline-none focus:ring-2 focus:ring-black/10"
-                        placeholder={contactInfo.phone1}
+                        onFocus={() => setFocusedField("phone")}
+                        onBlur={() => setFocusedField("")}
+                        placeholder="+880 1234 567 890"
+                        className="h-12 w-full rounded-lg border border-slate-200 bg-white px-4 outline-none transition focus:border-[#172839] focus:ring-4 focus:ring-[#172839]/10"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Subject *
+                    <div className="flex flex-col gap-1">
+                      <label
+                        className={labelClass("subject")}
+                        htmlFor="subject"
+                      >
+                        Subject
                       </label>
                       <SearchableSelect
                         value={formData.subject}
                         onChange={(value) =>
-                          setFormData((prev) => ({ ...prev, subject: value }))
+                          setFormData((current) => ({
+                            ...current,
+                            subject: value,
+                          }))
                         }
-                        options={[
-                          { value: "", label: "Select a subject" },
-                          ...subjectOptions,
-                        ]}
-                        placeholder="Select a subject"
+                        options={subjectOptions}
+                        placeholder="Select subject"
                         searchable={false}
                         className="min-w-0"
-                        buttonClassName="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 transition-all duration-300 focus:border-black focus:outline-none focus:ring-2 focus:ring-black/10"
+                        buttonClassName="h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-left outline-none transition focus:border-[#172839] focus:ring-4 focus:ring-[#172839]/10"
                         menuClassName="rounded-xl"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Your Message *
+                  <div className="flex flex-col gap-1">
+                    <label className={labelClass("message")} htmlFor="message">
+                      Message
                     </label>
-                    <RichTextEditor
-                      value={formData.message}
-                      onChange={(value) =>
-                        setFormData((current) => ({
-                          ...current,
-                          message: value,
-                        }))
-                      }
-                      placeholder="Tell us how we can help you..."
-                      minHeight={220}
-                    />
+                    <div
+                      onFocusCapture={() => setFocusedField("message")}
+                      onBlurCapture={() => setFocusedField("")}
+                    >
+                      <RichTextEditor
+                        value={formData.message}
+                        onChange={(value) =>
+                          setFormData((current) => ({
+                            ...current,
+                            message: value,
+                          }))
+                        }
+                        placeholder="How can we help you today?"
+                        minHeight={180}
+                      />
+                    </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="app-btn-primary flex w-full items-center justify-center gap-3 rounded-xl py-4 font-semibold transition-all duration-300 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-70"
+                    className="app-btn-primary inline-flex h-14 w-full items-center justify-center gap-2 rounded-full px-10 text-sm font-semibold shadow-lg transition hover:scale-105 hover:opacity-95 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
+                    style={{
+                      color: buttonTextColor,
+                      backgroundColor: themeColor,
+                    }}
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                         Sending...
                       </>
                     ) : (
                       <>
-                        <FiSend className="text-xl" />
+                        <FiSend />
                         Send Message
                       </>
                     )}
@@ -431,79 +364,91 @@ const Contact = () => {
                 </form>
               )}
             </div>
-          </div>
 
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 gap-4">
-              {infoCards.map((card) => (
-                <a
-                  key={card.title}
-                  href={card.href}
-                  target={card.title === "Visit Us" ? "_blank" : undefined}
-                  rel={
-                    card.title === "Visit Us"
-                      ? "noopener noreferrer"
-                      : undefined
-                  }
-                  className="rounded-2xl border border-gray-200 bg-linear-to-br from-white to-gray-50 p-5 shadow-sm transition hover:shadow-lg"
-                >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className="flex h-11 w-11 items-center justify-center rounded-2xl"
-                      style={{
-                        backgroundColor: themeColor,
-                        color: buttonTextColor,
-                      }}
-                    >
-                      {card.icon}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
-                        {card.title}
-                      </p>
-                      <p className="mt-2 break-all text-sm font-medium text-black">
-                        {card.value}
-                      </p>
-                    </div>
+            <div className="lg:col-span-5 space-y-6">
+              <div className="rounded-xl bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition hover:scale-[1.02]">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg bg-[#172839]/5 p-3 text-(--brand-theme-color)">
+                    <FiMapPin className="text-xl" />
                   </div>
-                </a>
-              ))}
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-linear-to-br from-gray-50 to-white p-6">
-              <h3 className="mb-6 text-xl font-bold text-black">
-                Find Our Store
-              </h3>
-              <div className="overflow-hidden rounded-xl border border-gray-300 shadow-lg">
-                <iframe
-                  title={`${storeName} location`}
-                  src={contactInfo.mapUrl}
-                  width="100%"
-                  height="320"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  className="rounded-xl"
-                />
+                  <div>
+                    <h3 className="text-lg font-bold text-[#172839]">
+                      Our Store
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-600">
+                      {contactInfo.address}
+                    </p>
+                    <a
+                      href={contactInfo.addressLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-(--brand-theme-color) hover:underline"
+                    >
+                      View on map <FiMapPin />
+                    </a>
+                  </div>
+                </div>
               </div>
-              {contactInfo.phone2 ? (
-                <p className="mt-4 text-sm text-gray-600">
-                  Alternate support line:{" "}
-                  <span className="font-medium text-black">
-                    {contactInfo.phone2}
-                  </span>
-                </p>
-              ) : null}
+
+              <div className="rounded-xl bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition hover:scale-[1.02]">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg bg-[#172839]/5 p-3 text-(--brand-theme-color)">
+                    <FiHeadphones className="text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#172839]">
+                      Customer Support
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Phone: {contactInfo.phone1}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Email: {contactInfo.email}
+                    </p>
+                    {contactInfo.phone2 ? (
+                      <p className="mt-1 text-sm text-slate-600">
+                        Alternate: {contactInfo.phone2}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </section>
 
-        <div className="mt-12 md:mt-16">
-          <FaqQuestionsSection id="faqs" />
+      <section className="relative h-112.5 w-full overflow-hidden bg-[#172839]/5">
+        <div className="pointer-events-none absolute inset-0 z-10 bg-[#172839]/20" />
+        <iframe
+          title={`${storeName} location`}
+          src={contactInfo.mapUrl}
+          width="100%"
+          height="450"
+          style={{ border: 0 }}
+          allowFullScreen=""
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          className="h-full w-full grayscale contrast-125"
+        />
+        <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+          <div className="flex flex-col items-center">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-white shadow-xl"
+              style={{ backgroundColor: themeColor }}
+            >
+              <FiMapPin className="text-2xl text-white" />
+            </div>
+            <div className="mt-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#172839] shadow-lg">
+              {storeName}
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* FAQs (right after the big map) */}
+      <FaqQuestionsSection id="faqs" />
+    </main>
   );
 };
 

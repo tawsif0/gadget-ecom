@@ -15,10 +15,10 @@ const DEFAULT_NAV_LINK_PATHS = {
 };
 const LEGACY_CATALOG_TITLE = "{storeName} catalog with stock-aware shopping";
 const LEGACY_CATALOG_DESCRIPTION =
-  "Browse categories, compare pricing modes, and surface only the stock visibility you choose to publish.";
+  "Browse categories, review pricing modes, and surface only the stock visibility you choose to publish.";
 const DEFAULT_CATALOG_TITLE = "Shop the full {storeName} catalog";
 const DEFAULT_CATALOG_DESCRIPTION =
-  "Browse categories, compare pricing options, and discover curated deals across the store.";
+  "Browse categories, review pricing options, and discover curated deals across the store.";
 const DEFAULT_STOREFRONT_NAV_LINKS = [
   { label: "Daily Deals", path: DEFAULT_NAV_LINK_PATHS["daily deals"] },
   { label: "Top Categories", path: DEFAULT_NAV_LINK_PATHS["top categories"] },

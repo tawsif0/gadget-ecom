@@ -169,7 +169,6 @@ const ThankYou = lazy(() => import("./Home/components/ThankYou"));
 const OrderTracking = lazy(() => import("./pages/OrderTracking"));
 const LandingPageView = lazy(() => import("./Home/pages/LandingPageView"));
 const PolicyPage = lazy(() => import("./Home/pages/PolicyPage"));
-const CompareProducts = lazy(() => import("./pages/CompareProducts"));
 const MyWishlist = lazy(() => import("./pages/MyWishlist"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Navbar = lazy(() => import("./Home/components/Navbar"));
@@ -306,7 +305,6 @@ function PublicLayout() {
             {/* Shop / product listing */}
             <Route path="/shop" element={<ProductGrid />} />
             <Route path="/products" element={<Navigate to="/shop" replace />} />
-            <Route path="/compare" element={<CompareProducts />} />
             <Route path="/wishlist" element={<MyWishlist />} />
 
             {/* Single product */}
@@ -391,7 +389,6 @@ const resolveStaticPageTitle = (pathname) => {
     ["/", "Home"],
     ["/home", "Home"],
     ["/shop", "Shop"],
-    ["/compare", "Compare"],
     ["/wishlist", "Wishlist"],
     ["/contact", "Contact"],
     ["/cart", "Cart"],

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import toast from "react-hot-toast";
-import SearchableSelect from "../../components/SearchableSelect";
+import CategoryTypeSelect from "../../components/CategoryTypeSelect";
 import RichTextEditor from "../../components/RichTextEditor";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import {
@@ -19,7 +19,7 @@ const baseUrl = import.meta.env.VITE_API_URL;
 function CreateCategory() {
   const { themeColor, buttonTextColor } = useThemeColors();
   const [categoryName, setCategoryName] = useState("");
-  const [categoryType, setCategoryType] = useState("General");
+  const [categoryType, setCategoryType] = useState("Latest");
   const [categoryDescription, setCategoryDescription] = useState("");
   const [categoryImageFile, setCategoryImageFile] = useState(null);
   const [categoryImagePreview, setCategoryImagePreview] = useState("");
@@ -27,13 +27,7 @@ function CreateCategory() {
   const [nameError, setNameError] = useState("");
   const [typeError, setTypeError] = useState("");
 
-  const categoryTypes = [
-    "General",
-    "Popular",
-    "Hot deals",
-    "Best Selling",
-    "Latest",
-  ];
+  // Types are centrally managed via CategoryTypeSelect
 
   const handleCategoryImageChange = (event) => {
     const file = event.target.files?.[0];
@@ -103,8 +97,9 @@ function CreateCategory() {
       }
 
       const formData = new FormData();
+      const resolvedType = String(categoryType || "").trim();
       formData.append("name", categoryName);
-      formData.append("type", categoryType);
+      formData.append("type", resolvedType);
       formData.append("description", categoryDescription);
       formData.append("isActive", "true");
 
@@ -122,7 +117,7 @@ function CreateCategory() {
       if (response.data.success) {
         // Reset form
         setCategoryName("");
-        setCategoryType("General");
+        setCategoryType("Latest");
         setCategoryDescription("");
         setCategoryImageFile(null);
         setCategoryImagePreview("");
@@ -167,25 +162,18 @@ function CreateCategory() {
               <label htmlFor="categoryType">
                 <span className={dashboardLabelClass}>Category Type *</span>
               </label>
-              <SearchableSelect
+              <CategoryTypeSelect
                 value={categoryType}
                 onChange={(value) => {
                   setCategoryType(value);
                   if (typeError) setTypeError("");
                 }}
-                options={categoryTypes.map((type) => ({
-                  value: type,
-                  label: type,
-                }))}
                 placeholder="Category type"
-                searchable={false}
-                className="min-w-0"
                 buttonClassName={`${dashboardFieldClass} text-base md:text-lg ${
                   typeError
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                     : ""
                 }`}
-                menuClassName="rounded-xl"
               />
               {/* Red error text under the select */}
               {typeError && (
@@ -205,6 +193,7 @@ function CreateCategory() {
                 </p>
               )}
             </div>
+
             {/* Category Name Field */}
             <div className="mb-4">
               <label htmlFor="categoryName">

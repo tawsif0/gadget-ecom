@@ -6,14 +6,12 @@ import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   FiArrowRight,
-  FiChevronDown,
   FiGrid,
   FiHeart,
   FiLogOut,
   FiMenu,
   FiPackage,
   FiSearch,
-  FiShuffle,
   FiShoppingBag,
   FiUser,
   FiX,
@@ -101,7 +99,7 @@ const Navbar = () => {
   const location = useLocation();
   const { settings } = usePublicSettings();
   const { cartCount } = useCart();
-  const compareCount = useSelector((state) => state.compare.items?.length || 0);
+
   const wishlistCount = useSelector(
     (state) => state.wishlist.items?.length || 0,
   );
@@ -110,16 +108,17 @@ const Navbar = () => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileMenuTab, setMobileMenuTab] = useState("menu");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuButtonRef = useRef(null);
   const userMenuRef = useRef(null);
+  const desktopSearchWrapRef = useRef(null);
   const searchRef = useRef(null);
   const timeoutRef = useRef(null);
 
@@ -136,9 +135,7 @@ const Navbar = () => {
     logoMode === "image" ? toPublicAssetUrl(website?.logoUrl || "") : "";
   const logoText = String(website?.logoText || "").trim();
   const brandLogoText = logoText || brandName;
-  const safeCompareCount = Number.isFinite(compareCount)
-    ? compareCount
-    : Number.parseInt(compareCount, 10) || 0;
+
   const safeCartCount = Number.isFinite(cartCount)
     ? cartCount
     : Number.parseInt(cartCount, 10) || 0;
@@ -228,6 +225,7 @@ const Navbar = () => {
   useEffect(() => {
     setMobileMenuOpen(false);
     setMobileSearchOpen(false);
+    setDesktopSearchOpen(false);
     setShowSuggestions(false);
     setUserMenuOpen(false);
   }, [location.pathname, location.search]);
@@ -241,10 +239,25 @@ const Navbar = () => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
       }
+
+      if (
+        desktopSearchWrapRef.current &&
+        !desktopSearchWrapRef.current.contains(event.target)
+      ) {
+        setDesktopSearchOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!desktopSearchOpen) return;
+    window.requestAnimationFrame(() => {
+      const input = searchRef.current?.querySelector("input");
+      if (input) input.focus();
+    });
+  }, [desktopSearchOpen]);
 
   useEffect(() => {
     if (!mobileMenuOpen) return undefined;
@@ -395,7 +408,6 @@ const Navbar = () => {
 
   const handleCategoryClick = (id) => {
     navigate(`/shop?category=${id}`);
-    setCategoryOpen(false);
     setMobileMenuOpen(false);
     scrollToTop();
   };
@@ -417,22 +429,8 @@ const Navbar = () => {
     scrollToTop();
   };
 
-  const handleCompareClick = () => {
-    if (safeCompareCount < 2) {
-      toast.error("Select at least 2 products to compare");
-      return;
-    }
-    navigate("/compare");
-    setCategoryOpen(false);
-    setMobileMenuOpen(false);
-    setMobileSearchOpen(false);
-    setShowSuggestions(false);
-    scrollToTop();
-  };
-
   const handleWishlistClick = () => {
     navigate("/wishlist");
-    setCategoryOpen(false);
     setMobileMenuOpen(false);
     setMobileSearchOpen(false);
     setShowSuggestions(false);
@@ -440,7 +438,6 @@ const Navbar = () => {
   };
 
   const handleMobileRouteClick = () => {
-    setCategoryOpen(false);
     setMobileMenuOpen(false);
     setMobileMenuTab("menu");
     setMobileSearchOpen(false);
@@ -466,7 +463,7 @@ const Navbar = () => {
           onFocus={() => query.trim() && setShowSuggestions(true)}
           placeholder="Search products, categories, or order ID..."
           autoComplete="off"
-          className="h-12 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-24 text-sm text-slate-900 outline-none transition-all focus:border-slate-300 focus:bg-white focus:shadow-lg"
+          className="h-12 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-900 outline-none transition-all focus:border-slate-300 focus:bg-white focus:shadow-lg"
         />
       </form>
 
@@ -525,7 +522,7 @@ const Navbar = () => {
 
   return (
     <header
-      className={`app-layer-header sticky top-0 bg-white transition-shadow duration-300 ${scrolled ? "shadow-lg" : "shadow-sm"}`}
+      className={`app-layer-header sticky top-0 border-b border-slate-200 bg-white transition-shadow duration-300 ${scrolled ? "shadow-md" : "shadow-sm"}`}
     >
       <div className="site-shell">
         <div className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2 py-3 sm:grid-cols-[40px_minmax(0,1fr)_auto] sm:gap-3 lg:hidden">
@@ -582,22 +579,6 @@ const Navbar = () => {
             <div className="relative shrink-0">
               <button
                 type="button"
-                onClick={handleCompareClick}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm sm:h-10 sm:w-10"
-                aria-label="Open compare"
-              >
-                <FiShuffle className="h-5 w-5" />
-              </button>
-              {safeCompareCount > 0 ? (
-                <span className="pointer-events-none absolute -right-1 -top-1 z-10 inline-flex min-w-4.5 items-center justify-center rounded-full border-2 border-white bg-slate-950 px-1 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                  {safeCompareCount > 99 ? "99+" : safeCompareCount}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="relative shrink-0">
-              <button
-                type="button"
                 onClick={handleWishlistClick}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm sm:h-10 sm:w-10"
                 aria-label="Open wishlist"
@@ -637,7 +618,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        <div className="hidden items-center gap-4 py-3 lg:flex lg:gap-6 lg:py-4">
+        <div className="hidden items-center gap-6 py-4 lg:flex">
           <Link
             to="/"
             onClick={scrollToTop}
@@ -659,123 +640,187 @@ const Navbar = () => {
             )}
           </Link>
 
-          {renderSearchBox({
-            className: "min-w-0 flex-1",
-          })}
+          <nav className="flex flex-1 items-center justify-center gap-8">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/"}
+                onClick={scrollToTop}
+                className={({ isActive }) =>
+                  `border-b-2 pb-1 text-sm font-semibold tracking-wide transition-colors ${
+                    isActive
+                      ? "border-slate-950 text-slate-950"
+                      : "border-transparent text-slate-600 hover:text-slate-950"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
 
-          <div className="ml-auto flex items-center gap-3">
-            {loggedIn ? (
-              <div ref={userMenuRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm"
-                  aria-haspopup="menu"
-                  aria-expanded={userMenuOpen}
-                >
-                  <span
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
-                    style={{ backgroundColor: accent }}
+          <div className="ml-auto flex items-center justify-end gap-2">
+            <div
+              ref={desktopSearchWrapRef}
+              className="relative flex items-center"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setDesktopSearchOpen((prev) => !prev);
+                  setUserMenuOpen(false);
+                  setMobileSearchOpen(false);
+                  setMobileMenuOpen(false);
+                }}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+                aria-label="Toggle search"
+                aria-expanded={desktopSearchOpen}
+              >
+                {desktopSearchOpen ? (
+                  <FiX className="h-5 w-5" />
+                ) : (
+                  <FiSearch className="h-5 w-5" />
+                )}
+              </button>
+
+              <AnimatePresence>
+                {desktopSearchOpen ? (
+                  <motion.div
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{
+                      opacity: 1,
+                      width: "min(11rem, calc(100vw - 22rem))",
+                    }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    className="absolute right-[calc(100%+0.75rem)] top-1/2 z-11030 w-[min(48rem,calc(100vw-22rem))] max-w-3xl -translate-y-1/2"
                   >
-                    {(userName || "U").charAt(0).toUpperCase()}
-                  </span>
-                  <span className="hidden xl:block">
-                    {userName || "Account"}
-                  </span>
-                  <FiChevronDown
-                    className={`h-4 w-4 transition-transform ${userMenuOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
+                    {renderSearchBox({ className: "max-w-3xl" })}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
 
-                <AnimatePresence>
-                  {userMenuOpen ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                      transition={{ duration: 0.16 }}
-                      role="menu"
-                      className="absolute right-0 top-[calc(100%+0.75rem)] z-11020 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-                    >
-                      <button
-                        type="button"
-                        onClick={handleDashboardClick}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                        role="menuitem"
-                      >
-                        <FiGrid className="h-4 w-4" />
-                        Dashboard
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                        role="menuitem"
-                      >
-                        <FiLogOut className="h-4 w-4" />
-                        Logout
-                      </button>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  onClick={scrollToTop}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm"
-                >
-                  <FiUser className="h-4 w-4" />
-                  Login
-                </Link>
-              </>
-            )}
+            <div ref={userMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setUserMenuOpen((prev) => !prev);
+                  setDesktopSearchOpen(false);
+                  setShowSuggestions(false);
+                }}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+                aria-label="User menu"
+              >
+                <FiUser className="h-5 w-5" />
+              </button>
 
-            <button
-              type="button"
-              onClick={handleCompareClick}
-              className="relative inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm"
-            >
-              <FiShuffle className="h-4 w-4" />
-              <span className="hidden xl:inline">Compare</span>
-              {safeCompareCount > 0 ? (
-                <span className="rounded-full bg-slate-950 px-2 py-1 text-xs font-bold text-white">
-                  {safeCompareCount > 99 ? "99+" : safeCompareCount}
-                </span>
-              ) : null}
-            </button>
+              <AnimatePresence>
+                {userMenuOpen ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.16 }}
+                    role="menu"
+                    className="absolute right-0 top-[calc(100%+0.75rem)] z-11020 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+                  >
+                    {loggedIn ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleDashboardClick}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                          role="menuitem"
+                        >
+                          <FiGrid className="h-4 w-4" />
+                          Dashboard
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                          role="menuitem"
+                        >
+                          <FiLogOut className="h-4 w-4" />
+                          Logout
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          to="/login"
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            scrollToTop();
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                          role="menuitem"
+                        >
+                          <FiUser className="h-4 w-4" />
+                          Login
+                        </Link>
+                        <Link
+                          to="/register"
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            scrollToTop();
+                          }}
+                          className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                          role="menuitem"
+                        >
+                          <FiArrowRight className="h-4 w-4" />
+                          Register
+                        </Link>
+                      </>
+                    )}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
 
-            <button
-              type="button"
-              onClick={handleWishlistClick}
-              className="relative inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm"
-            >
-              <FiHeart className="h-4 w-4" />
-              <span className="hidden xl:inline">Wishlist</span>
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={handleWishlistClick}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+                aria-label="Open wishlist"
+              >
+                <FiHeart className="h-5 w-5" />
+              </button>
               {safeWishlistCount > 0 ? (
-                <span className="rounded-full bg-slate-950 px-2 py-1 text-xs font-bold text-white">
+                <span className="pointer-events-none absolute -right-1 -top-1 z-10 inline-flex min-w-4.5 items-center justify-center rounded-full border-2 border-white bg-slate-950 px-1 py-0.5 text-[10px] font-bold text-white shadow-sm">
                   {safeWishlistCount > 99 ? "99+" : safeWishlistCount}
                 </span>
               ) : null}
-            </button>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                navigate("/cart");
-                scrollToTop();
-              }}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm"
-            >
-              <FiShoppingBag className="h-4 w-4" />
-              <span className="hidden xl:inline">Cart</span>
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/cart");
+                  scrollToTop();
+                }}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+                aria-label="Open cart"
+              >
+                <FiShoppingBag className="h-5 w-5" />
+              </button>
               {safeCartCount > 0 ? (
-                <span className="rounded-full bg-slate-950 px-2 py-1 text-xs font-bold text-white">
+                <span
+                  className="pointer-events-none absolute -right-1 -top-1 z-10 inline-flex min-w-4.5 items-center justify-center rounded-full border-2 border-white px-1 py-0.5 text-[10px] font-bold text-white shadow-sm"
+                  style={{
+                    background: `linear-gradient(135deg, ${accent}, ${accentDark})`,
+                  }}
+                >
                   {safeCartCount > 99 ? "99+" : safeCartCount}
                 </span>
               ) : null}
-            </button>
+            </div>
           </div>
         </div>
 
@@ -791,106 +836,6 @@ const Navbar = () => {
             </motion.div>
           ) : null}
         </AnimatePresence>
-
-        <div className="hidden border-t border-slate-100 lg:block">
-          <div className="site-shell flex items-center gap-6 py-3">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setCategoryOpen((prev) => !prev)}
-                className="inline-flex h-11 items-center gap-2 rounded-full px-6 text-sm font-semibold text-white"
-                style={{
-                  backgroundColor: accent,
-                }}
-              >
-                <FiGrid className="h-4 w-4" />
-                All Categories
-                <FiChevronDown
-                  className={`h-4 w-4 transition-transform ${categoryOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {categoryOpen ? (
-                <div className="absolute left-0 top-[calc(100%+0.85rem)] z-11010 w-160 max-w-[calc(100vw-4rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                  <div className="grid grid-cols-[240px_minmax(0,1fr)]">
-                    <div
-                      className="border-r border-slate-100 px-6 py-8"
-                      style={{ backgroundColor: accentSoft }}
-                    >
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                        Collections
-                      </p>
-                      <h3 className="mt-3 text-2xl font-bold text-slate-900">
-                        Shop by
-                        <br />
-                        Category
-                      </h3>
-                      <Link
-                        to="/shop"
-                        onClick={scrollToTop}
-                        className="mt-8 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm"
-                      >
-                        View all products
-                        <FiArrowRight className="h-4 w-4" />
-                      </Link>
-                    </div>
-                    <div className="flex max-h-100 flex-wrap content-start items-start gap-2.5 overflow-y-auto p-5">
-                      {loading ? (
-                        <div className="text-sm text-slate-500">
-                          Loading categories...
-                        </div>
-                      ) : (
-                        visibleCategories.slice(0, 16).map((category) => (
-                          <button
-                            key={category._id}
-                            type="button"
-                            onClick={() => handleCategoryClick(category._id)}
-                            className="inline-flex w-fit max-w-full shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-                          >
-                            <span className="max-w-35 truncate font-semibold text-slate-900">
-                              {category.name}
-                            </span>
-                            <span className="whitespace-nowrap text-[10px] uppercase tracking-widest text-slate-400">
-                              {category.type || "General"}
-                            </span>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <nav className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === "/"}
-                  onClick={scrollToTop}
-                  className={({ isActive }) =>
-                    `rounded-full px-5 py-2 text-sm font-medium transition-all ${
-                      isActive
-                        ? "text-slate-900"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`
-                  }
-                  style={({ isActive }) =>
-                    isActive
-                      ? {
-                          backgroundColor: accentSoft,
-                          boxShadow: `inset 0 0 0 1px ${accentBorder}`,
-                        }
-                      : undefined
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-        </div>
       </div>
 
       <AnimatePresence>
@@ -991,7 +936,7 @@ const Navbar = () => {
                           >
                             <span className="truncate">{category.name}</span>
                             <span className="ml-3 shrink-0 rounded-full bg-white px-2 py-1 text-[10px] uppercase tracking-widest text-slate-500">
-                              {category.type || "General"}
+                              {category.type || "Latest"}
                             </span>
                           </button>
                         ))}

@@ -22,16 +22,9 @@ import {
   selectAdminSettingsDraft,
   selectPublicSettingsState,
 } from "../../store/publicSettingsSlice";
+import CategoryTypeSelect from "../../components/CategoryTypeSelect";
 
 const baseUrl = import.meta.env.VITE_API_URL;
-
-const CATEGORY_TYPES = [
-  "General",
-  "Popular",
-  "Hot deals",
-  "Best Selling",
-  "Latest",
-];
 
 const ToggleSwitch = ({
   checked,
@@ -79,7 +72,7 @@ function ModifyCategory() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
-  const [editType, setEditType] = useState("General");
+  const [editType, setEditType] = useState("Latest");
   const [editDescription, setEditDescription] = useState("");
   const [editImageFile, setEditImageFile] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState("");
@@ -90,16 +83,20 @@ function ModifyCategory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("");
 
-  const categoryTypeOptions = useMemo(
-    () => [
+  const categoryTypeOptions = useMemo(() => {
+    const uniqueTypes = Array.from(
+      new Set(
+        (Array.isArray(categories) ? categories : [])
+          .map((category) => String(category?.type || "Latest").trim())
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+
+    return [
       { value: "", label: "All category types" },
-      ...CATEGORY_TYPES.map((type) => ({
-        value: type,
-        label: type,
-      })),
-    ],
-    [],
-  );
+      ...uniqueTypes.map((type) => ({ value: type, label: type })),
+    ];
+  }, [categories]);
 
   const visibleCategories = useMemo(() => {
     const normalizedSearch = String(searchQuery || "").trim().toLowerCase();
@@ -108,7 +105,7 @@ function ModifyCategory() {
     return categories.filter((category) => {
       const name = String(category?.name || "").toLowerCase();
       const description = stripHtml(category?.description || "").toLowerCase();
-      const type = String(category?.type || "General").trim().toLowerCase();
+      const type = String(category?.type || "Latest").trim().toLowerCase();
 
       const matchesSearch =
         !normalizedSearch ||
@@ -258,7 +255,8 @@ function ModifyCategory() {
   const startEditing = (category) => {
     setEditingId(category._id);
     setEditName(category.name);
-    setEditType(category.type || "General");
+    const resolvedType = String(category.type || "Latest").trim() || "Latest";
+    setEditType(resolvedType);
     setEditDescription(category.description || "");
     setEditImageFile(null);
     setEditImagePreview(category.image || "");
@@ -269,7 +267,7 @@ function ModifyCategory() {
   const cancelEditing = () => {
     setEditingId(null);
     setEditName("");
-    setEditType("General");
+    setEditType("Latest");
     setEditDescription("");
     setEditImageFile(null);
     setEditImagePreview("");
@@ -288,12 +286,19 @@ function ModifyCategory() {
       return;
     }
 
+    const resolvedType = String(editType || "").trim();
+    if (!resolvedType) {
+      setEditError("Category type is required");
+      toast.error("Category type is required");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
 
       const formData = new FormData();
       formData.append("name", editName);
-      formData.append("type", editType);
+      formData.append("type", resolvedType);
       formData.append("description", editDescription);
       formData.append("isActive", String(editIsActive));
 
@@ -316,7 +321,7 @@ function ModifyCategory() {
         );
         setEditingId(null);
         setEditName("");
-        setEditType("General");
+        setEditType("Latest");
         setEditDescription("");
         setEditImageFile(null);
         setEditImagePreview("");
@@ -345,7 +350,7 @@ function ModifyCategory() {
     try {
       const formData = new FormData();
       formData.append("name", category?.name || "");
-      formData.append("type", category?.type || "General");
+      formData.append("type", category?.type || "Latest");
       formData.append("description", category?.description || "");
       formData.append("isActive", String(!(category?.isActive !== false)));
 
@@ -622,18 +627,14 @@ function ModifyCategory() {
                             />
                           </div>
                           <div className="w-full md:w-auto">
-                            <SearchableSelect
+                            <CategoryTypeSelect
                               value={editType}
-                              onChange={setEditType}
-                              options={categoryTypes.map((type) => ({
-                                value: type,
-                                label: type,
-                              }))}
+                              onChange={(value) => {
+                                setEditType(value);
+                                if (editError) setEditError("");
+                              }}
                               placeholder="Category type"
-                              searchable={false}
-                              className="min-w-0"
                               buttonClassName={`${dashboardFieldClass} w-full md:w-auto`}
-                              menuClassName="rounded-xl"
                             />
                           </div>
                           <div className="w-full md:w-auto">
@@ -718,7 +719,7 @@ function ModifyCategory() {
                             {category.name}
                           </span>
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 self-start sm:self-center">
-                            {category.type || "General"}
+                            {category.type || "Latest"}
                           </span>
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold self-start sm:self-center ${

@@ -11,7 +11,7 @@ import {
 import { FiEye } from "react-icons/fi";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { getProductPricingDisplay } from "../../utils/productPricing";
+import { getProductCardPricingDisplay } from "../../utils/productPricing";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 const getCardMetaLine = (product) =>
@@ -365,7 +365,7 @@ const HotDeals = () => {
             <div className={`${getGridClasses(productCount, isExpanded)}`}>
               {displayProducts.map((product, index) => {
                 const isProcessing = processingBuyNow === product.id;
-                const pricing = getProductPricingDisplay(product);
+                const pricing = getProductCardPricingDisplay(product);
                 const cardMetaLine = getCardMetaLine(product);
 
                 return (
@@ -413,11 +413,6 @@ const HotDeals = () => {
                         >
                           {product.title}
                         </h3>
-                        {product.brand ? (
-                          <p className="text-xs text-gray-500 line-clamp-1">
-                            {`Brand: ${product.brand}`}
-                          </p>
-                        ) : null}
                         {cardMetaLine ? (
                           <div className="flex items-center gap-2">
                             {cardMetaLine ? (

@@ -176,17 +176,14 @@ export const buildCatalogDataLayerPayload = ({
   selectedCategoryId = "",
   selectedCategoryName = "",
   selectedCategoryType = "",
-  selectedBrand = "",
   collectionType = "",
   searchTerm = "",
   sortBy = "",
   categories = [],
-  brands = [],
   catalogProducts = [],
   items = [],
 } = {}) => {
   const normalizedCategories = normalizeCatalogRecords(categories);
-  const normalizedBrands = normalizeCatalogRecords(brands);
   const normalizedItems = (Array.isArray(items) ? items : [])
     .map((item) => buildDataLayerItem(item))
     .filter((item) => item.item_id || item.item_name);
@@ -195,16 +192,13 @@ export const buildCatalogDataLayerPayload = ({
     : 0;
   const normalizedItemListId =
     safeString(itemListId) ||
-    (safeString(selectedBrand)
-      ? `brand:${slugifyDataLayerValue(selectedBrand)}`
-      : safeString(selectedCategoryId)
-        ? `category:${slugifyDataLayerValue(selectedCategoryId)}`
-        : safeString(collectionType)
-          ? `collection:${slugifyDataLayerValue(collectionType)}`
-          : "shop");
+    (safeString(selectedCategoryId)
+      ? `category:${slugifyDataLayerValue(selectedCategoryId)}`
+      : safeString(collectionType)
+        ? `collection:${slugifyDataLayerValue(collectionType)}`
+        : "shop");
   const normalizedItemListName =
     safeString(itemListName) ||
-    safeString(selectedBrand) ||
     safeString(selectedCategoryName) ||
     safeString(collectionType) ||
     "Shop";
@@ -217,12 +211,10 @@ export const buildCatalogDataLayerPayload = ({
     catalog_category_id: safeString(selectedCategoryId) || undefined,
     catalog_category_name: safeString(selectedCategoryName) || undefined,
     catalog_category_type: safeString(selectedCategoryType) || undefined,
-    catalog_brand: safeString(selectedBrand) || undefined,
     catalog_collection: safeString(collectionType) || undefined,
     catalog_search_term: safeString(searchTerm) || undefined,
     catalog_sort_by: safeString(sortBy) || undefined,
     catalog_category_count: normalizedCategories.length || undefined,
-    catalog_brand_count: normalizedBrands.length || undefined,
     catalog_product_count: catalogProductCount || undefined,
     catalog_visible_item_count: normalizedItems.length || undefined,
     catalog_context: toCleanPayload({
@@ -231,19 +223,16 @@ export const buildCatalogDataLayerPayload = ({
       selected_category_id: safeString(selectedCategoryId) || undefined,
       selected_category_name: safeString(selectedCategoryName) || undefined,
       selected_category_type: safeString(selectedCategoryType) || undefined,
-      selected_brand: safeString(selectedBrand) || undefined,
       selected_collection: safeString(collectionType) || undefined,
       search_term: safeString(searchTerm) || undefined,
       sort_by: safeString(sortBy) || undefined,
       category_count: normalizedCategories.length || undefined,
-      brand_count: normalizedBrands.length || undefined,
       product_count: catalogProductCount || undefined,
       visible_item_count: normalizedItems.length || undefined,
     }),
     catalog_categories: normalizedCategories.length
       ? normalizedCategories
       : undefined,
-    catalog_brands: normalizedBrands.length ? normalizedBrands : undefined,
     ecommerce: toCleanPayload({
       currency: getDataLayerCurrency(),
       item_list_id: normalizedItemListId,

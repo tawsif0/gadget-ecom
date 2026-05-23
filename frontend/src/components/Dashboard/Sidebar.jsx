@@ -173,11 +173,6 @@ const getRoleSections = (
             ],
           },
           {
-            name: "Brands",
-            icon: FiTag,
-            tab: "module-brands",
-          },
-          {
             name: "Inventory Center",
             icon: FiPackage,
             tab: "module-inventory",

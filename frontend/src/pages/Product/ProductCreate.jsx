@@ -34,7 +34,6 @@ const ProductCreate = () => {
   const baseUrl = import.meta.env.VITE_API_URL;
 
   const [categories, setCategories] = useState([]);
-  const [filteredCategories, setFilteredCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,8 +57,6 @@ const ProductCreate = () => {
     lowStockThreshold: "5",
     allowBackorder: false,
     category: "",
-    productType: "General",
-    brand: "",
     marketplaceType: "simple",
     weight: "",
     dimensions: "",
@@ -70,21 +67,12 @@ const ProductCreate = () => {
 
   const [errors, setErrors] = useState({});
   const [customColorValue, setCustomColorValue] = useState("#2563eb");
-  const [brandOptions, setBrandOptions] = useState([]);
 
   const [features, setFeatures] = useState([""]);
   const [specifications, setSpecifications] = useState([
     { key: "", value: "" },
   ]);
 
-  // Product type options - same as category types
-  const productTypes = [
-    "General",
-    "Popular",
-    "Hot deals",
-    "Best Selling",
-    "Latest",
-  ];
   const marketplaceTypes = [{ value: "simple", label: "Simple Product" }];
 
   const getToken = () => {
@@ -108,18 +96,6 @@ const ProductCreate = () => {
     { name: "Gray", value: "#6b7280" },
     { name: "Orange", value: "#ea580c" },
   ];
-
-  const brandSelectOptions = useMemo(
-    () =>
-      brandOptions.map((brand) => {
-        return {
-          value: String(brand?.name || "").trim(),
-          label: String(brand?.name || "").trim(),
-          description: "Catalog brand",
-        };
-      }),
-    [brandOptions],
-  );
 
   const fetchCategories = async () => {
     try {
@@ -151,62 +127,6 @@ const ProductCreate = () => {
     }
   };
 
-  const fetchBrandOptions = async () => {
-    try {
-      const response = await axios.get(`${baseUrl}/brands/public`);
-      const rows = Array.isArray(response.data?.brands)
-        ? response.data.brands
-        : [];
-      setBrandOptions(rows);
-    } catch (_error) {
-      setBrandOptions([]);
-    }
-  };
-
-  const normalizeTypeKey = (value) =>
-    String(value || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "");
-
-  const resolveCategoryTypeLabel = (value) => {
-    const key = normalizeTypeKey(value);
-    if (!key) return "General";
-
-    const match = productTypes.find((label) => normalizeTypeKey(label) === key);
-    return match || String(value || "").trim() || "General";
-  };
-
-  const resolveCategoryTypeKey = (category) => {
-    const rawType =
-      category?.type ?? category?.categoryType ?? category?.productType;
-    const key = normalizeTypeKey(rawType);
-    return key || "general";
-  };
-
-  const filterCategoriesByType = (type, categoriesList = categories) => {
-    const selectedKey = normalizeTypeKey(type) || "general";
-
-    const filtered = (
-      Array.isArray(categoriesList) ? categoriesList : []
-    ).filter((cat) => {
-      const categoryKey = resolveCategoryTypeKey(cat);
-
-      if (selectedKey === "general") {
-        return categoryKey === "general";
-      }
-
-      return categoryKey === selectedKey;
-    });
-
-    setFilteredCategories(filtered);
-
-    // If current category is not in filtered list, reset category selection
-    if (form.category && !filtered.find((cat) => cat._id === form.category)) {
-      setForm((prev) => ({ ...prev, category: "" }));
-    }
-  };
-
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -218,17 +138,7 @@ const ProductCreate = () => {
     }
 
     fetchCategories();
-    fetchBrandOptions();
   }, []);
-
-  useEffect(() => {
-    if (!categories.length) {
-      setFilteredCategories([]);
-      return;
-    }
-
-    filterCategoriesByType(form.productType, categories);
-  }, [categories, form.productType]);
 
   useEffect(
     () => () => {
@@ -238,13 +148,6 @@ const ProductCreate = () => {
     },
     [videoPreviews],
   );
-
-  // Handle product type change
-  const handleProductTypeChange = (e) => {
-    const { value } = e.target;
-    setForm((prev) => ({ ...prev, productType: value, category: "" }));
-    filterCategoriesByType(value);
-  };
 
   // Handle main image upload
   const handleMainImageChange = (e) => {
@@ -429,16 +332,11 @@ const ProductCreate = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    if (name === "productType") {
-      handleProductTypeChange(e);
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        [name]: e.target.type === "checkbox" ? e.target.checked : value,
-      }));
-      if (errors[name]) validateField(name, value);
-    }
+    setForm((prev) => ({
+      ...prev,
+      [name]: e.target.type === "checkbox" ? e.target.checked : value,
+    }));
+    if (errors[name]) validateField(name, value);
   };
 
   const handleColorAdd = (colorValue) => {
@@ -554,6 +452,10 @@ const ProductCreate = () => {
       }
 
       const formData = new FormData();
+      const selectedCategory = (Array.isArray(categories) ? categories : []).find(
+        (cat) => String(cat?._id || "") === String(form.category || ""),
+      );
+      const resolvedCategoryType = String(selectedCategory?.type || "Latest").trim() || "Latest";
 
       // Append form data
       formData.append("title", form.title.trim());
@@ -564,9 +466,8 @@ const ProductCreate = () => {
       formData.append("lowStockThreshold", form.lowStockThreshold || "5");
       formData.append("allowBackorder", String(Boolean(form.allowBackorder)));
       formData.append("category", form.category);
-      formData.append("productType", form.productType);
+      formData.append("productType", resolvedCategoryType);
       formData.append("marketplaceType", form.marketplaceType);
-      formData.append("brand", form.brand.trim());
       formData.append("costing", form.costing || "0");
       formData.append("weight", form.weight || "0");
       formData.append("dimensions", form.dimensions.trim());
@@ -626,8 +527,6 @@ const ProductCreate = () => {
           lowStockThreshold: "5",
           allowBackorder: false,
           category: "",
-          productType: "General",
-          brand: "",
           marketplaceType: "simple",
           weight: "",
           dimensions: "",
@@ -649,9 +548,6 @@ const ProductCreate = () => {
         setYoutubeVideoUrls([""]);
         setErrors({});
         setCustomColorValue("#2563eb");
-
-        // Reset filtered categories to default
-        filterCategoriesByType("General");
 
         window.dispatchEvent(
           new CustomEvent("productCreated", {
@@ -905,31 +801,6 @@ const ProductCreate = () => {
                     </label>
                   </div>
 
-                  {/* Product Type */}
-                  <div>
-                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                      Product Type *
-                    </label>
-                    <SearchableSelect
-                      value={form.productType}
-                      onChange={(value) =>
-                        handleChange({ target: { name: "productType", value } })
-                      }
-                      options={productTypes.map((type) => ({
-                        value: type,
-                        label: type,
-                      }))}
-                      placeholder="Product Type"
-                      searchable={false}
-                      className="min-w-0"
-                      buttonClassName="w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base"
-                      menuClassName="rounded-xl"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Type of product for grouping
-                    </p>
-                  </div>
-
                   {/* Category */}
                   <div>
                     <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
@@ -944,15 +815,13 @@ const ProductCreate = () => {
                         {
                           value: "",
                           label:
-                            filteredCategories.length === 0
-                              ? `No categories available for ${form.productType} type`
+                            categories.length === 0
+                              ? "No categories available"
                               : "Select a category",
                         },
-                        ...filteredCategories.map((cat) => ({
+                        ...categories.map((cat) => ({
                           value: cat._id,
-                          label: `${cat.name} (${resolveCategoryTypeLabel(
-                            cat?.type ?? cat?.categoryType ?? cat?.productType,
-                          )})`,
+                          label: `${cat.name} (${String(cat?.type || "Latest").trim() || "Latest"})`,
                         })),
                       ]}
                       placeholder="Select a category"
@@ -963,10 +832,9 @@ const ProductCreate = () => {
                       } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
                       menuClassName="rounded-xl"
                     />
-                    {filteredCategories.length === 0 && (
+                    {categories.length === 0 && (
                       <p className="text-sm text-yellow-600 mt-1">
-                        No categories found for {form.productType} type. Please
-                        create a category first.
+                        No categories found. Please create a category first.
                       </p>
                     )}
                     {errors.category && (
@@ -978,23 +846,6 @@ const ProductCreate = () => {
                         {errors.category}
                       </motion.p>
                     )}
-                  </div>
-
-                  {/* Brand */}
-                  <div>
-                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                      <FiPackage className="mr-2" /> Brand
-                    </label>
-                    <SearchableSelect
-                      value={form.brand}
-                      onChange={(value) =>
-                        setForm((prev) => ({ ...prev, brand: value }))
-                      }
-                      options={brandSelectOptions}
-                      placeholder="Select a brand"
-                      searchPlaceholder="Search brands"
-                      emptyLabel="No matching brands found"
-                    />
                   </div>
 
                   {/* Marketplace Type */}

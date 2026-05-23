@@ -22,7 +22,7 @@ import {
   FaTruck,
   FaUndo,
 } from "react-icons/fa";
-import { FiArrowLeft, FiHeart, FiShare2, FiShuffle } from "react-icons/fi";
+import { FiArrowLeft, FiHeart, FiShare2 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import SearchableSelect from "../../components/SearchableSelect";
 import { useNavigate, useParams } from "react-router-dom";
@@ -32,11 +32,6 @@ import { useAuth } from "../../hooks/useAuth";
 import usePublicSettings from "../../hooks/usePublicSettings";
 import StorefrontProductCard from "../components/StorefrontProductCard";
 import ProductReviewsPanel from "../components/ProductReviewsPanel";
-import {
-  COMPARE_LIMIT_MESSAGE,
-  MAX_COMPARE_ITEMS,
-  toggleCompareItem,
-} from "../../store/compareSlice";
 import { addRecentlyViewedItem } from "../../store/recentlyViewedSlice";
 import {
   selectWishlistPendingIds,
@@ -272,7 +267,6 @@ const ProductDetails = () => {
   const { user } = useAuth();
   const { settings, loaded: settingsLoaded } = usePublicSettings();
   const dispatch = useDispatch();
-  const compareItems = useSelector((state) => state.compare.items || []);
   const wishlistItems = useSelector((state) => state.wishlist.items || []);
   const wishlistPendingIds = useSelector(selectWishlistPendingIds);
   const navigate = useNavigate();
@@ -349,9 +343,6 @@ const ProductDetails = () => {
     productMediaItems.length > THUMBNAIL_VISIBLE_COUNT;
   const canShowPreviousThumbnailPage = thumbnailStartIndex > 0;
   const canShowNextThumbnailPage = thumbnailStartIndex < maxThumbnailStartIndex;
-  const isCompared = compareItems.some(
-    (item) => String(item?._id || "") === String(product?._id || ""),
-  );
   const isWishlisted = wishlistItems.some(
     (item) => String(item?._id || "") === String(product?._id || ""),
   );
@@ -876,6 +867,66 @@ const ProductDetails = () => {
     !hasColorVariantDefinition && Array.isArray(product?.colors)
       ? product.colors
       : [];
+
+  // Auto-select first variant options by default (and first color/variation where applicable).
+  useEffect(() => {
+    if (!product?._id) return;
+
+    setSelectedVariantOptions((prev) => {
+      const next = { ...(prev || {}) };
+      let changed = false;
+
+      productVariantDefinitions.forEach((definition, index) => {
+        if (next[index]) return;
+        const firstOption = Array.isArray(definition?.options)
+          ? definition.options[0]
+          : null;
+        if (!firstOption) return;
+        next[index] = firstOption;
+        changed = true;
+      });
+
+      return changed ? next : prev;
+    });
+
+    // If there is a color definition, keep selectedColor in sync for legacy UI bits.
+    const colorDefinitionIndex = productVariantDefinitions.findIndex(
+      (definition) =>
+        definition?.preset === "color" ||
+        String(definition?.name || "").toLowerCase() === "color",
+    );
+
+    if (colorDefinitionIndex >= 0) {
+      const option = productVariantDefinitions[colorDefinitionIndex]?.options?.[0];
+      const optionColor = String(option?.colorHex || option?.value || "")
+        .trim()
+        .toLowerCase();
+      if (optionColor) {
+        setSelectedColor((current) => (current ? current : optionColor));
+      }
+    } else if (legacyColorOptions.length > 0) {
+      const firstLegacy = String(legacyColorOptions[0] || "")
+        .trim()
+        .toLowerCase();
+      if (firstLegacy) {
+        setSelectedColor((current) => (current ? current : firstLegacy));
+      }
+    }
+
+    if (
+      String(product?.marketplaceType || "").toLowerCase() === "variable" &&
+      Array.isArray(product?.variations) &&
+      product.variations.length > 0
+    ) {
+      const firstActiveVariation =
+        product.variations.find((variation) => variation?.isActive !== false) ||
+        product.variations[0];
+      const firstId = String(firstActiveVariation?._id || "").trim();
+      if (firstId) {
+        setSelectedVariationId((current) => (current ? current : firstId));
+      }
+    }
+  }, [product?._id, product?.marketplaceType, product?.variations, productVariantDefinitions, legacyColorOptions]);
   const selectedVariation =
     marketplaceType === "variable"
       ? (product?.variations || []).find(
@@ -1189,21 +1240,6 @@ const ProductDetails = () => {
     }
   };
 
-  const handleToggleCompare = () => {
-    if (!product?._id) return;
-    const snapshot = createProductSnapshot(product);
-    if (!snapshot) return;
-    const exists = compareItems.some(
-      (item) => String(item?._id || "") === String(snapshot._id),
-    );
-    if (!exists && compareItems.length >= MAX_COMPARE_ITEMS) {
-      toast.error(COMPARE_LIMIT_MESSAGE);
-      return;
-    }
-    dispatch(toggleCompareItem(snapshot));
-    toast.success(exists ? "Removed from compare" : "Added to compare");
-  };
-
   const handleShare = async () => {
     try {
       if (navigator.share) {
@@ -1384,22 +1420,6 @@ const ProductDetails = () => {
     } catch (error) {
       toast.error(error || "Failed to update wishlist");
     }
-  };
-
-  const handleRelatedCompare = (event, entry) => {
-    event.stopPropagation();
-    const snapshot = createProductSnapshot(entry);
-    if (!snapshot) return;
-
-    const exists = compareItems.some(
-      (item) => String(item?._id || "") === String(snapshot._id || ""),
-    );
-    if (!exists && compareItems.length >= MAX_COMPARE_ITEMS) {
-      toast.error(COMPARE_LIMIT_MESSAGE);
-      return;
-    }
-    dispatch(toggleCompareItem(snapshot));
-    toast.success(exists ? "Removed from compare" : "Added to compare");
   };
 
   const handleRelatedAddToCart = async (event, entry) => {
@@ -1769,7 +1789,6 @@ const ProductDetails = () => {
         : "bg-rose-50 text-rose-600";
   const summaryHighlights = [
     categoryLabel ? { label: "Category", value: categoryLabel } : null,
-    brandLabel ? { label: "Brand", value: brandLabel } : null,
     {
       label: "Delivery",
       value:
@@ -1800,18 +1819,6 @@ const ProductDetails = () => {
         if (!label || !value) return;
         rows.push({ label, value });
       });
-    }
-
-    if (String(product?.brand || "").trim()) {
-      const hasBrandRow = rows.some(
-        (row) =>
-          String(row.label || "")
-            .trim()
-            .toLowerCase() === "brand",
-      );
-      if (!hasBrandRow) {
-        rows.unshift({ label: "Brand", value: String(product.brand).trim() });
-      }
     }
 
     if (Number(product?.weight || 0) > 0) {
@@ -2233,14 +2240,7 @@ const ProductDetails = () => {
               {product.title}
             </h1>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-400">
-              {brandLabel ? (
-                <span>
-                  Brand:{" "}
-                  <span className="font-bold text-black">{brandLabel}</span>
-                </span>
-              ) : null}
-            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-400" />
 
             <div className="mt-8 rounded-[1.75rem] border border-black/10 bg-white p-6 shadow-[0_12px_30px_rgba(0,0,0,0.04)] sm:p-8">
               <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
@@ -2727,15 +2727,6 @@ const ProductDetails = () => {
               )}
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  data-no-scroll-top
-                  onClick={handleToggleCompare}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-black/10 px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.18em] text-black transition-all hover:border-black"
-                >
-                  <FiShuffle className="h-4 w-4" />
-                  {isCompared ? "Remove Compare" : "Compare"}
-                </button>
                 <button
                   type="button"
                   data-no-scroll-top

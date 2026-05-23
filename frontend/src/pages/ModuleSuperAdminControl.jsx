@@ -30,6 +30,7 @@ import {
   selectAdminSettingsDraft,
   selectPublicSettingsState,
 } from "../store/publicSettingsSlice";
+import CategoryTypeSelect from "../components/CategoryTypeSelect";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -129,14 +130,12 @@ const ModuleSuperAdminControl = () => {
   const [analyticsOptionsLoading, setAnalyticsOptionsLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [analyticsFilters, setAnalyticsFilters] = useState({
     from: "",
     to: "",
     productId: "",
     categoryId: "",
     categoryType: "",
-    brand: "",
   });
   const [groupBy, setGroupBy] = useState("product");
   const [analyticsPayload, setAnalyticsPayload] = useState({
@@ -196,22 +195,19 @@ const ModuleSuperAdminControl = () => {
   const loadAnalyticsOptions = useCallback(async () => {
     try {
       setAnalyticsOptionsLoading(true);
-      const [productResponse, categoryResponse, brandResponse] = await Promise.all([
+      const [productResponse, categoryResponse] = await Promise.all([
         axios.get(`${baseUrl}/products`, { headers: getAuthHeaders() }),
         axios.get(`${baseUrl}/categories`, { headers: getAuthHeaders() }),
-        axios.get(`${baseUrl}/brands`, { headers: getAuthHeaders() }),
       ]);
 
       setProducts(Array.isArray(productResponse.data?.products) ? productResponse.data.products : []);
       setCategories(
         Array.isArray(categoryResponse.data?.categories) ? categoryResponse.data.categories : [],
       );
-      setBrands(Array.isArray(brandResponse.data?.brands) ? brandResponse.data.brands : []);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to load analytics options");
       setProducts([]);
       setCategories([]);
-      setBrands([]);
     } finally {
       setAnalyticsOptionsLoading(false);
     }
@@ -229,7 +225,6 @@ const ModuleSuperAdminControl = () => {
           productId: filters.productId || undefined,
           categoryId: filters.categoryId || undefined,
           categoryType: filters.categoryType || undefined,
-          brand: filters.brand || undefined,
         },
       });
 
@@ -256,15 +251,6 @@ const ModuleSuperAdminControl = () => {
     loadRevenueAnalytics();
   }, [loadAnalyticsOptions, loadRevenueAnalytics]);
 
-  const categoryTypeOptions = useMemo(() => {
-    const types = new Set();
-    categories.forEach((cat) => {
-      const type = String(cat?.type ?? cat?.categoryType ?? cat?.productType ?? "").trim();
-      if (type) types.add(type);
-    });
-    return Array.from(types).sort((a, b) => a.localeCompare(b));
-  }, [categories]);
-
   const productSelectOptions = useMemo(
     () =>
       products.map((product) => ({
@@ -279,25 +265,15 @@ const ModuleSuperAdminControl = () => {
       categories.map((cat) => ({
         value: String(cat?._id || ""),
         label: `${String(cat?.name || "Unnamed")} (${String(
-          cat?.type ?? cat?.categoryType ?? cat?.productType ?? "General",
+          cat?.type ?? cat?.categoryType ?? cat?.productType ?? "Latest",
         )})`,
       })),
     [categories],
   );
 
-  const brandSelectOptions = useMemo(
-    () =>
-      brands.map((brand) => ({
-        value: String(brand?.name || "").trim(),
-        label: String(brand?.name || "").trim(),
-      })),
-    [brands],
-  );
-
   const pieData = useMemo(() => {
     const keyForRow = (row) => {
       if (groupBy === "category") return String(row?.categoryName || "Unassigned");
-      if (groupBy === "brand") return String(row?.brand || "Unassigned");
       if (groupBy === "categoryType") return String(row?.categoryType || "Unassigned");
       return String(row?.title || "Product");
     };
@@ -730,7 +706,7 @@ const ModuleSuperAdminControl = () => {
             <div>
               <h2 className="text-lg font-semibold text-black">Revenue Analytics</h2>
               <p className="text-xs text-gray-500">
-                Filter by product, category, category type, and brand.
+                Filter by product, category, and category type.
               </p>
             </div>
           </div>
@@ -807,39 +783,16 @@ const ModuleSuperAdminControl = () => {
             </label>
             <label className="block">
               <span className="text-xs font-medium text-gray-600 mb-1 block">Category Type</span>
-              <select
+              <CategoryTypeSelect
                 value={analyticsFilters.categoryType}
-                onChange={(event) =>
-                  setAnalyticsFilters((prev) => ({ ...prev, categoryType: event.target.value }))
+                onChange={(value) =>
+                  setAnalyticsFilters((prev) => ({ ...prev, categoryType: value }))
                 }
-                disabled={analyticsOptionsLoading}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
-              >
-                <option value="">All types</option>
-                {categoryTypeOptions.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium text-gray-600 mb-1 block">Brand</span>
-              <select
-                value={analyticsFilters.brand}
-                onChange={(event) =>
-                  setAnalyticsFilters((prev) => ({ ...prev, brand: event.target.value }))
-                }
-                disabled={analyticsOptionsLoading}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
-              >
-                <option value="">All brands</option>
-                {brandSelectOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                includeAllOption
+                allLabel="All types"
+                placeholder="All types"
+                buttonClassName="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+              />
             </label>
           </div>
 
@@ -854,7 +807,6 @@ const ModuleSuperAdminControl = () => {
                 <option value="product">Product</option>
                 <option value="category">Category</option>
                 <option value="categoryType">Category Type</option>
-                <option value="brand">Brand</option>
               </select>
             </label>
 
@@ -876,7 +828,6 @@ const ModuleSuperAdminControl = () => {
                     productId: "",
                     categoryId: "",
                     categoryType: "",
-                    brand: "",
                   };
                   setAnalyticsFilters(cleared);
                   loadRevenueAnalytics(cleared);
@@ -992,7 +943,6 @@ const ModuleSuperAdminControl = () => {
                   <tr>
                     <th className="py-2 px-3">Product</th>
                     <th className="py-2 px-3">Category</th>
-                    <th className="py-2 px-3">Brand</th>
                     <th className="py-2 px-3">Qty</th>
                     <th className="py-2 px-3">Revenue</th>
                     <th className="py-2 px-3">Cost</th>
@@ -1019,7 +969,6 @@ const ModuleSuperAdminControl = () => {
                         <td className="py-2 px-3 whitespace-nowrap">
                           {row.categoryName || "-"} {row.categoryType ? `(${row.categoryType})` : ""}
                         </td>
-                        <td className="py-2 px-3 whitespace-nowrap">{row.brand || "-"}</td>
                         <td className="py-2 px-3 whitespace-nowrap">
                           {Number(row.quantitySold || 0)}
                         </td>

@@ -338,7 +338,30 @@ export const getResolvedSelectedVariants = (product = {}, selectedVariants = [])
     .filter(Boolean);
 };
 
-export const getDefaultSelectedVariants = () => [];
+export const getDefaultSelectedVariants = (product = {}) => {
+  const definitions = normalizeProductVariantDefinitions(product);
+  if (!definitions.length) return [];
+
+  return definitions
+    .map((definition) => {
+      const firstOption = Array.isArray(definition.options)
+        ? definition.options[0]
+        : null;
+      if (!firstOption) return null;
+
+      return {
+        name: definition.name,
+        preset: definition.preset,
+        label: firstOption.label || firstOption.value,
+        value: firstOption.value || firstOption.label,
+        colorHex: definition.preset === "color" ? firstOption.colorHex || "" : "",
+        priceMode: firstOption.priceMode || "default",
+        price: firstOption.price ?? null,
+        comparePrice: firstOption.comparePrice ?? null,
+      };
+    })
+    .filter(Boolean);
+};
 
 export const getProductPricingForSelectedVariants = (
   product = {},

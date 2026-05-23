@@ -157,11 +157,6 @@ const TAB_META = {
     description:
       "Track business accounts, ledger movement, and financial records.",
   },
-  "module-brands": {
-    section: "Catalog & Inventory",
-    title: "Brands",
-    description: "Create and maintain brand entities used across the catalog.",
-  },
   "module-admin-users": {
     section: "Administration",
     title: "Admin Users",

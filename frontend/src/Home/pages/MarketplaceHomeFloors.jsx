@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import usePublicSettings from "../../hooks/usePublicSettings";
 import { getDefaultPublicSettings } from "../../utils/publicSettings";
+import { getProductCardPricingDisplay } from "../../utils/productPricing";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -24,30 +25,7 @@ const toImageUrl = (value) => {
     : `/uploads/products/${raw}`;
 };
 
-const getPricing = (product) => {
-  const priceType = String(product?.priceType || "single").toLowerCase();
-  if (priceType === "tba") {
-    return {
-      isTba: true,
-      currentPrice: null,
-      previousPrice: null,
-      hasDiscount: false,
-    };
-  }
-
-  const currentPrice =
-    Number(product?.salePrice ?? product?.price ?? 0) > 0
-      ? Number(product?.salePrice ?? product?.price ?? 0)
-      : Number(product?.price || 0);
-  const previousPrice = Number(product?.price || currentPrice || 0);
-
-  return {
-    isTba: false,
-    currentPrice,
-    previousPrice,
-    hasDiscount: priceType === "best" && previousPrice > currentPrice,
-  };
-};
+const getPricing = (product) => getProductCardPricingDisplay(product);
 
 const DEFAULT_STOREFRONT = getDefaultPublicSettings().storefront;
 
@@ -489,7 +467,7 @@ const MarketplaceHomeFloors = () => {
                       {category.name}
                     </p>
                     <p className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
-                      {category.type || "General"}
+                      {category.type || "Latest"}
                     </p>
                   </div>
                   <span className="text-sm font-bold text-black">

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import ConfirmModal from "../../components/ConfirmModal";
 import RichTextEditor from "../../components/RichTextEditor";
 import SearchableSelect from "../../components/SearchableSelect";
+import CategoryTypeSelect from "../../components/CategoryTypeSelect";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import {
   isAllowedProductVideoType,
@@ -82,7 +83,7 @@ function ProductModify({ initialMode = "list" }) {
     costing: "",
     publicationStatus: "draft",
     category: "",
-    productType: "General",
+    productType: "Latest",
     marketplaceType: "simple",
     sku: "",
     stock: "",
@@ -99,7 +100,6 @@ function ProductModify({ initialMode = "list" }) {
     recurringIntervalCount: "1",
     recurringTotalCycles: "0",
     recurringTrialDays: "0",
-    brand: "",
     weight: "",
     dimensions: "",
   });
@@ -110,22 +110,12 @@ function ProductModify({ initialMode = "list" }) {
     { key: "", value: "" },
   ]);
   const [customColorValue, setCustomColorValue] = useState("#2563eb");
-  const [brandOptions, setBrandOptions] = useState([]);
   const [variantDefinitions, setVariantDefinitions] = useState([]);
   const [listSearch, setListSearch] = useState("");
   const [listCategoryType, setListCategoryType] = useState("");
   const [listCategory, setListCategory] = useState("");
-  const [listBrand, setListBrand] = useState("");
   const [listPublicationStatus, setListPublicationStatus] = useState("");
 
-  // Product type options
-  const productTypes = [
-    "General",
-    "Popular",
-    "Hot deals",
-    "Best Selling",
-    "Latest",
-  ];
   const marketplaceTypes = [{ value: "simple", label: "Simple Product" }];
   const priceTypes = [
     { value: "single", label: "Single Price" },
@@ -279,23 +269,11 @@ function ProductModify({ initialMode = "list" }) {
       })
       .filter(Boolean);
 
-  const brandSelectOptions = useMemo(
-    () =>
-      brandOptions.map((brand) => {
-        return {
-          value: String(brand?.name || "").trim(),
-          label: String(brand?.name || "").trim(),
-          description: "Catalog brand",
-        };
-      }),
-    [brandOptions],
-  );
-
   const categoryTypeOptions = useMemo(() => {
     const types = new Set();
 
     categories.forEach((category) => {
-      const type = String(category?.type || "General").trim() || "General";
+      const type = String(category?.type || "Latest").trim() || "Latest";
       types.add(type);
     });
 
@@ -315,25 +293,17 @@ function ProductModify({ initialMode = "list" }) {
 
     return categories
       .filter((category) => {
-        const categoryType = String(category?.type || "General").trim() || "General";
+        const categoryType = String(category?.type || "Latest").trim() || "Latest";
         if (!normalizedCategoryType) return true;
         return categoryType === normalizedCategoryType;
       })
       .map((category) => ({
         value: String(category?._id || "").trim(),
         label: String(category?.name || "").trim(),
-        description: String(category?.type || "General").trim() || "General",
+        description: String(category?.type || "Latest").trim() || "Latest",
       }))
       .filter((option) => option.value);
   }, [categories, listCategoryType]);
-
-  const brandFilterOptions = useMemo(
-    () => [
-      { value: "", label: "All brands" },
-      ...brandSelectOptions,
-    ],
-    [brandSelectOptions],
-  );
 
   const publicationStatusOptions = useMemo(
     () => [
@@ -347,7 +317,6 @@ function ProductModify({ initialMode = "list" }) {
   const visibleProducts = useMemo(() => {
     const normalizedSearch = String(listSearch || "").trim().toLowerCase();
     const normalizedCategory = String(listCategory || "").trim();
-    const normalizedBrand = String(listBrand || "").trim();
     const normalizedPublicationStatus = String(listPublicationStatus || "").trim().toLowerCase();
 
     return products.filter((product) => {
@@ -357,35 +326,30 @@ function ProductModify({ initialMode = "list" }) {
       const productType = String(product?.productType || "").toLowerCase();
       const categoryId = String(product?.category?._id || product?.category || "").trim();
       const categoryName = String(product?.category?.name || "").toLowerCase();
-      const categoryType = String(product?.category?.type || "General").toLowerCase();
-      const brandName = String(product?.brand?.name || product?.brand || "").toLowerCase();
+      const categoryType = String(product?.category?.type || "Latest").toLowerCase();
       const publicationStatus = String(product?.publicationStatus || "draft").trim().toLowerCase();
 
       const matchesSearch =
         !normalizedSearch ||
-        [title, description, sku, categoryName, brandName, productType, categoryType]
+        [title, description, sku, categoryName, productType, categoryType]
           .join(" ")
           .includes(normalizedSearch);
       const matchesCategory = !normalizedCategory || categoryId === normalizedCategory;
-      const matchesBrand =
-        !normalizedBrand || String(product?.brand?._id || product?.brand || "").trim() === normalizedBrand || brandName === normalizedBrand.toLowerCase();
       const matchesPublicationStatus =
         !normalizedPublicationStatus || publicationStatus === normalizedPublicationStatus;
 
       return (
         matchesSearch &&
         matchesCategory &&
-        matchesBrand &&
         matchesPublicationStatus
       );
     });
-  }, [products, listSearch, listCategory, listBrand, listPublicationStatus]);
+  }, [products, listSearch, listCategory, listPublicationStatus]);
 
   const hasActiveListFilters = Boolean(
     String(listSearch || "").trim() ||
       String(listCategoryType || "").trim() ||
       String(listCategory || "").trim() ||
-      String(listBrand || "").trim() ||
       String(listPublicationStatus || "").trim(),
   );
 
@@ -393,7 +357,6 @@ function ProductModify({ initialMode = "list" }) {
     setListSearch("");
     setListCategoryType("");
     setListCategory("");
-    setListBrand("");
     setListPublicationStatus("");
   };
 
@@ -717,7 +680,6 @@ function ProductModify({ initialMode = "list" }) {
 
     fetchProducts();
     fetchCategories();
-    fetchBrandOptions();
 
     if (initialMode === "create") {
       setShowForm(true);
@@ -788,23 +750,10 @@ function ProductModify({ initialMode = "list" }) {
     }
   };
 
-  const fetchBrandOptions = async () => {
-    try {
-      const response = await axios.get(`${baseUrl}/brands/public`);
-      const rows = Array.isArray(response.data?.brands)
-        ? response.data.brands
-        : [];
-      setBrandOptions(rows);
-    } catch (_error) {
-      setBrandOptions([]);
-    }
-  };
-
   const handleRefresh = () => {
     setLoading(true);
     fetchProducts();
     fetchCategories();
-    fetchBrandOptions();
     toast.success("Products refreshed!");
   };
 
@@ -818,7 +767,7 @@ function ProductModify({ initialMode = "list" }) {
       costing: "",
       publicationStatus: "draft",
       category: "",
-      productType: "General",
+      productType: "Latest",
       marketplaceType: "simple",
       sku: "",
       stock: "",
@@ -835,7 +784,6 @@ function ProductModify({ initialMode = "list" }) {
       recurringIntervalCount: "1",
       recurringTotalCycles: "0",
       recurringTrialDays: "0",
-      brand: "",
       weight: "",
       dimensions: "",
     });
@@ -964,7 +912,6 @@ function ProductModify({ initialMode = "list" }) {
           productData.recurringTrialDays !== null
             ? String(productData.recurringTrialDays)
             : "0",
-        brand: productData.brand || "",
         weight: productData.weight || "",
         dimensions: productData.dimensions || "",
       });
@@ -1765,7 +1712,6 @@ function ProductModify({ initialMode = "list" }) {
         "recurringTrialDays",
         String(Math.max(0, Number(form.recurringTrialDays || 0))),
       );
-      formData.append("brand", form.brand.trim());
       formData.append("weight", form.weight || "0");
       formData.append("dimensions", form.dimensions.trim());
       formData.append(
@@ -1847,7 +1793,6 @@ function ProductModify({ initialMode = "list" }) {
       cancelForm();
       fetchProducts();
       fetchCategories();
-      fetchBrandOptions();
 
       window.dispatchEvent(new CustomEvent("productCreated"));
     } catch (err) {
@@ -2134,20 +2079,14 @@ function ProductModify({ initialMode = "list" }) {
                       <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                         Product Type *
                       </label>
-                      <SearchableSelect
+                      <CategoryTypeSelect
                         value={form.productType}
                         onChange={(value) =>
                           handleChange({ target: { name: "productType", value } })
                         }
-                        options={productTypes.map((type) => ({
-                          value: type,
-                          label: type,
-                        }))}
                         placeholder="Product Type"
-                        searchable={false}
-                        className="min-w-0"
+                        showManageButton={false}
                         buttonClassName="w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base"
-                        menuClassName="rounded-xl"
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         Type of product for grouping
@@ -2200,21 +2139,6 @@ function ProductModify({ initialMode = "list" }) {
                           {errors.category}
                         </motion.p>
                       )}
-                    </div>
-
-                    {/* Brand */}
-                    <div>
-                      <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                        <FiPackage className="mr-2" /> Brand
-                      </label>
-                      <SearchableSelect
-                        value={form.brand}
-                        onChange={(value) => setForm((prev) => ({ ...prev, brand: value }))}
-                        options={brandSelectOptions}
-                        placeholder="Select a brand"
-                        searchPlaceholder="Search brands"
-                        emptyLabel="No matching brands found"
-                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -3139,16 +3063,18 @@ function ProductModify({ initialMode = "list" }) {
                   >
                     Cancel
                   </button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     type="button"
                     onClick={(event) => handleSubmit(event, "draft")}
                     disabled={isSubmitting}
-                    className="w-full py-2 md:py-3 px-3 md:px-4 rounded-lg font-medium text-gray-900 bg-amber-100 border border-amber-200 hover:bg-amber-200 transition-all shadow-sm md:shadow-md flex items-center justify-center text-sm md:text-base disabled:opacity-60"
+                    className="w-full py-2 md:py-3 px-3 md:px-4 rounded-lg font-medium text-gray-900 bg-amber-100 border border-amber-200 hover:bg-amber-200 transition-all shadow-sm md:shadow-md flex items-center justify-center text-sm md:text-base disabled:opacity-60 active:scale-[0.99]"
                   >
-                    {isSubmitting ? "Saving draft..." : editingId ? "Save Draft" : "Create Draft"}
-                  </motion.button>
+                    {isSubmitting
+                      ? "Saving draft..."
+                      : editingId
+                        ? "Save Draft"
+                        : "Create Draft"}
+                  </button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -3205,7 +3131,7 @@ function ProductModify({ initialMode = "list" }) {
                   Manage products
                 </h2>
                 <p className="mt-1 text-sm text-gray-600">
-                  Search and narrow the catalog by category, brand, and publication state.
+                  Search and narrow the catalog by category and publication state.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -3256,15 +3182,6 @@ function ProductModify({ initialMode = "list" }) {
                 placeholder="All categories"
                 searchPlaceholder="Search categories"
                 emptyLabel="No matching categories found"
-                clearable
-              />
-              <SearchableSelect
-                value={listBrand}
-                onChange={setListBrand}
-                options={brandFilterOptions}
-                placeholder="All brands"
-                searchPlaceholder="Search brands"
-                emptyLabel="No matching brands found"
                 clearable
               />
               <SearchableSelect
@@ -3566,11 +3483,6 @@ function ProductModify({ initialMode = "list" }) {
                               ? new Date(product.createdAt).toLocaleDateString()
                               : "N/A"}
                           </div>
-                          {product.brand && (
-                            <div className="text-xs md:text-sm text-gray-600">
-                              Brand: {product.brand}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>

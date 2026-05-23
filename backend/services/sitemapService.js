@@ -1,7 +1,6 @@
 const fs = require("fs/promises");
 const path = require("path");
 const Category = require("../models/Category");
-const Brand = require("../models/Brand");
 const Product = require("../models/Product");
 const LandingPage = require("../models/LandingPage");
 
@@ -80,7 +79,6 @@ const buildStaticUrlEntries = (storefrontBaseUrl, timestamp) => {
     "/",
     "/shop",
     "/contact",
-    "/compare",
     "/wishlist",
     "/cart",
     "/checkout",
@@ -100,12 +98,8 @@ const buildStaticUrlEntries = (storefrontBaseUrl, timestamp) => {
 };
 
 const buildDynamicUrlEntries = async (storefrontBaseUrl, timestamp) => {
-  const [categories, brands, products, landingPages] = await Promise.all([
+  const [categories, products, landingPages] = await Promise.all([
     Category.find({ isActive: true }).select("_id updatedAt").lean(),
-    Brand.find({ isActive: true })
-      .select("name updatedAt")
-      .sort({ name: 1 })
-      .lean(),
     Product.find({
       isActive: true,
       publicationStatus: "published",
@@ -120,17 +114,6 @@ const buildDynamicUrlEntries = async (storefrontBaseUrl, timestamp) => {
     loc: `${storefrontBaseUrl}/shop?category=${category._id}`,
     lastmod: new Date(category.updatedAt || timestamp).toISOString(),
   }));
-
-  const brandEntries = brands
-    .map((brand) => ({
-      name: safeString(brand.name),
-      updatedAt: brand.updatedAt,
-    }))
-    .filter((brand) => brand.name)
-    .map((brand) => ({
-      loc: `${storefrontBaseUrl}/shop?brand=${encodeURIComponent(brand.name)}`,
-      lastmod: new Date(brand.updatedAt || timestamp).toISOString(),
-    }));
 
   const productEntries = products.map((product) => ({
     loc: `${storefrontBaseUrl}/product/${product._id}`,
@@ -150,7 +133,6 @@ const buildDynamicUrlEntries = async (storefrontBaseUrl, timestamp) => {
 
   return [
     ...categoryEntries,
-    ...brandEntries,
     ...productEntries,
     ...landingPageEntries,
   ];

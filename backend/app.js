@@ -6,6 +6,7 @@ const compression = require("compression");
 const authRoutes = require("./routes/authRoutes");
 const authController = require("./controllers/authController");
 const categoryRoutes = require("./routes/categoryRoutes");
+const categoryTypeRoutes = require("./routes/categoryTypeRoutes");
 const productRoutes = require("./routes/productRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 const {
@@ -21,7 +22,6 @@ const accountRoutes = require("./routes/accountRoutes");
 const landingPageRoutes = require("./routes/landingPageRoutes");
 const abandonedOrderRoutes = require("./routes/abandonedOrderRoutes");
 const reportRoutes = require("./routes/reportRoutes");
-const brandRoutes = require("./routes/brandRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const path = require("path");
 
@@ -187,6 +187,7 @@ app.get("/sitemap.xml", authController.getPublicSitemapXml);
 app.get("/robots.txt", authController.getPublicRobotsTxt);
 app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/category-types", categoryTypeRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
@@ -198,7 +199,6 @@ app.use("/api/accounts", accountRoutes);
 app.use("/api/landing-pages", landingPageRoutes);
 app.use("/api/abandoned-orders", abandonedOrderRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/api/brands", brandRoutes);
 app.use("/api/contact-submissions", contactRoutes);
 // Simple welcome route for direct backend access
 app.get("/", (req, res) => {

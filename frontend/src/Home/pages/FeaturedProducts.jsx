@@ -6,7 +6,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { FaShoppingBag, FaShoppingCart } from "react-icons/fa";
 import { FiEye } from "react-icons/fi";
-import { getProductPricingDisplay } from "../../utils/productPricing";
+import { getProductCardPricingDisplay } from "../../utils/productPricing";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 const getCardMetaLine = (product) =>
@@ -112,11 +112,11 @@ const FeaturedProducts = () => {
   const [showAllProducts, setShowAllProducts] = useState({});
   const navigate = useNavigate();
 
-  // Fetch General products using PUBLIC route
-  const fetchGeneralProducts = async () => {
+  // Fetch Latest products using PUBLIC route
+  const fetchLatestProducts = async () => {
     try {
       const response = await axios.get(
-        `${baseUrl}/products/public/type/General`,
+        `${baseUrl}/products/public/type/Latest`,
       );
 
       let productsData = [];
@@ -133,15 +133,15 @@ const FeaturedProducts = () => {
         ...product,
       }));
     } catch (err) {
-      console.error("Error fetching general products:", err);
-      toast.error("Failed to load general products", {
+      console.error("Error fetching latest products:", err);
+      toast.error("Failed to load latest products", {
         autoClose: 3000,
       });
       return [];
     }
   };
 
-  // Group General type products by category
+  // Group Latest type products by category
   const groupProductsByCategory = (productsList) => {
     const grouped = {};
 
@@ -154,10 +154,10 @@ const FeaturedProducts = () => {
 
       if (typeof productCategory === "object" && productCategory._id) {
         categoryId = productCategory._id;
-        categoryName = productCategory.name || "General";
+        categoryName = productCategory.name || "Latest";
       } else if (productCategory) {
         categoryId = productCategory;
-        categoryName = "General";
+        categoryName = "Latest";
       } else {
         return;
       }
@@ -213,7 +213,7 @@ const FeaturedProducts = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const productsData = await fetchGeneralProducts();
+        const productsData = await fetchLatestProducts();
         const grouped = groupProductsByCategory(productsData);
         setGroupedProducts(grouped);
 
@@ -364,7 +364,7 @@ const FeaturedProducts = () => {
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-3 md:mb-4">
-            General Products
+            Latest Products
           </h2>
 
           <div className="max-w-xl mx-auto">
@@ -419,7 +419,7 @@ const FeaturedProducts = () => {
             <div className={`${getGridClasses(productCount, isExpanded)}`}>
               {displayProducts.map((product, index) => {
                 const isProcessing = processingBuyNow === product.id;
-                const pricing = getProductPricingDisplay(product);
+                const pricing = getProductCardPricingDisplay(product);
                 const cardMetaLine = getCardMetaLine(product);
 
                 return (
@@ -456,11 +456,6 @@ const FeaturedProducts = () => {
                         >
                           {product.title}
                         </h3>
-                        {product.brand ? (
-                          <p className="text-xs text-gray-500 line-clamp-1">
-                            {`Brand: ${product.brand}`}
-                          </p>
-                        ) : null}
                         {cardMetaLine ? (
                           <div className="flex items-center gap-2">
                             {cardMetaLine ? (

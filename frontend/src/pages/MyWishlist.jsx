@@ -488,46 +488,6 @@ export default function MyWishlist({ variant = "storefront" }) {
               ) : null,
             )}
           </div>
-
-          <section className="mt-12 border-t border-black/10 pt-8 sm:mt-16 sm:pt-12 lg:mt-24 lg:pt-16">
-            <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
-                <div className="flex -space-x-4 overflow-x-auto pb-1 sm:overflow-visible">
-                  {previewItems.map((product, index) => (
-                    <div
-                      key={`wishlist-preview-${String(product?._id || index)}`}
-                      className="h-20 w-16 shrink-0 overflow-hidden border border-white bg-zinc-100 shadow-sm sm:h-28 sm:w-24"
-                    >
-                      <img
-                        src={getWishlistPreviewImage(product)}
-                        alt={product?.title || "Wishlist product"}
-                        className="h-full w-full object-contain p-3 mix-blend-multiply grayscale transition duration-500 hover:grayscale-0"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">
-                    Selection Summary
-                  </p>
-                  <p className="text-xl font-extrabold tracking-tight text-black sm:text-3xl">
-                    {items.length} {items.length === 1 ? "Item" : "Items"} - Total Tk{" "}
-                    {wishlistTotal.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleAddAllToCart}
-                className="group relative inline-flex w-full items-center justify-center overflow-hidden bg-black px-10 py-4 text-xs font-black uppercase tracking-[0.28em] text-white transition hover:bg-zinc-900 sm:w-auto sm:px-14 sm:py-6"
-              >
-                <span className="relative z-10">Add to Cart</span>
-                <span className="absolute inset-0 translate-y-full bg-white/10 transition-transform duration-500 group-hover:translate-y-0" />
-              </button>
-            </div>
-          </section>
         </>
       )}
     </div>

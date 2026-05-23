@@ -5,7 +5,6 @@ import {
   FiEye,
   FiHeart,
   FiShoppingBag,
-  FiShuffle,
   FiStar,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
@@ -13,11 +12,6 @@ import {
   selectWishlistPendingIds,
   toggleWishlistItem,
 } from "../../store/wishlistSlice";
-import {
-  COMPARE_LIMIT_MESSAGE,
-  MAX_COMPARE_ITEMS,
-  toggleCompareItem,
-} from "../../store/compareSlice";
 import { createProductSnapshot } from "../../utils/productSnapshot";
 import { useCart } from "../../context/CartContext";
 import {
@@ -159,7 +153,7 @@ const getCategoryLabel = (product, badgeText = "") => {
     return String(badgeText).trim();
   }
 
-  return "General";
+  return "Latest";
 };
 
 const getSectionBadgeLabel = (categoryLabel, badgeText) => {
@@ -173,7 +167,6 @@ const useProductCardState = (product) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isCartItemPresent, toggleCartItem } = useCart();
-  const compareItems = useSelector((state) => state.compare.items || []);
   const wishlistItems = useSelector((state) => state.wishlist.items || []);
   const wishlistPendingIds = useSelector(selectWishlistPendingIds);
   const productId = String(product?._id || product?.id || "").trim();
@@ -202,9 +195,7 @@ const useProductCardState = (product) => {
     [product],
   );
 
-  const isCompared = compareItems.some(
-    (item) => String(item?._id || item?.id || "") === productId,
-  );
+
   const isWishlisted = wishlistItems.some(
     (item) => String(item?._id || item?.id || "") === productId,
   );
@@ -268,16 +259,7 @@ const useProductCardState = (product) => {
     });
   }, [productId, variantDefinitions]);
 
-  const toggleCompare = (event) => {
-    event.stopPropagation();
-    const snapshot = createProductSnapshot(product);
-    if (!snapshot) return;
-    if (!isCompared && compareItems.length >= MAX_COMPARE_ITEMS) {
-      toast.error(COMPARE_LIMIT_MESSAGE);
-      return;
-    }
-    dispatch(toggleCompareItem(snapshot));
-  };
+
 
   const toggleWishlist = async (event) => {
     event.stopPropagation();
@@ -313,12 +295,10 @@ const useProductCardState = (product) => {
   return {
     canQuickAddToCart,
     pricing,
-    isCompared,
     isInCart,
     isWishlisted,
     wishlistLoading,
     toggleProductCart,
-    toggleCompare,
     toggleWishlist,
   };
 };
@@ -493,17 +473,6 @@ const PopularCard = ({
             </IconButton>
           ) : null}
           <IconButton
-            label={isCompared ? "Remove from compare" : "Add to compare"}
-            onClick={toggleCompare}
-            className={getCompareIconButtonClassName(
-              isCompared,
-              "dark",
-              "h-8 w-8 sm:h-9 sm:w-9",
-            )}
-          >
-            <FiShuffle className="h-4 w-4" />
-          </IconButton>
-          <IconButton
             label="View details"
             onClick={(event) => {
               event.stopPropagation();
@@ -526,13 +495,11 @@ const HotDealCard = ({
   discountLabel,
   pricing,
   showCartButton,
-  isCompared,
   isInCart,
   isWishlisted,
   wishlistLoading,
   toggleProductCart,
   onViewDetails,
-  toggleCompare,
   toggleWishlist,
 }) => (
   <article
@@ -597,17 +564,6 @@ const HotDealCard = ({
             </IconButton>
           ) : null}
           <IconButton
-            label={isCompared ? "Remove from compare" : "Add to compare"}
-            onClick={toggleCompare}
-            className={getCompareIconButtonClassName(
-              isCompared,
-              "light",
-              "h-8 w-8 sm:h-9 sm:w-9",
-            )}
-          >
-            <FiShuffle className="h-4 w-4" />
-          </IconButton>
-          <IconButton
             label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             onClick={toggleWishlist}
             disabled={wishlistLoading}
@@ -631,13 +587,11 @@ const FeaturedCard = ({
   categoryLabel,
   pricing,
   showCartButton,
-  isCompared,
   isInCart,
   isWishlisted,
   wishlistLoading,
   toggleProductCart,
   onViewDetails,
-  toggleCompare,
   toggleWishlist,
 }) => (
   <article
@@ -695,17 +649,6 @@ const FeaturedCard = ({
           </IconButton>
         ) : null}
         <IconButton
-          label={isCompared ? "Remove from compare" : "Add to compare"}
-          onClick={toggleCompare}
-          className={getCompareIconButtonClassName(
-            isCompared,
-            "light",
-            "h-8 w-8 sm:h-9 sm:w-9",
-          )}
-        >
-          <FiShuffle className="h-4 w-4" />
-        </IconButton>
-        <IconButton
           label="View details"
           onClick={(event) => {
             event.stopPropagation();
@@ -725,13 +668,11 @@ const BestSellingCard = ({
   categoryLabel,
   pricing,
   showCartButton,
-  isCompared,
   isInCart,
   isWishlisted,
   wishlistLoading,
   toggleProductCart,
   onViewDetails,
-  toggleCompare,
   toggleWishlist,
 }) => {
   const ratingValue = Number(product?.averageRating || product?.rating || 0);
@@ -790,17 +731,7 @@ const BestSellingCard = ({
                 <FiShoppingBag className="h-4 w-4" />
               </IconButton>
             ) : null}
-            <IconButton
-              label={isCompared ? "Remove from compare" : "Add to compare"}
-              onClick={toggleCompare}
-              className={getCompareIconButtonClassName(
-                isCompared,
-                "light",
-                "h-8 w-8 sm:h-9 sm:w-9",
-              )}
-            >
-              <FiShuffle className="h-4 w-4" />
-            </IconButton>
+
             <IconButton
               label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
               onClick={toggleWishlist}
@@ -825,13 +756,11 @@ const LatestCard = ({
   product,
   pricing,
   showCartButton,
-  isCompared,
   isInCart,
   isWishlisted,
   wishlistLoading,
   toggleProductCart,
   onViewDetails,
-  toggleCompare,
   toggleWishlist,
 }) => (
   <article
@@ -869,17 +798,6 @@ const LatestCard = ({
             <FiShoppingBag className="h-4 w-4" />
           </IconButton>
         ) : null}
-        <IconButton
-          label={isCompared ? "Remove from compare" : "Add to compare"}
-          onClick={toggleCompare}
-          className={getCompareIconButtonClassName(
-            isCompared,
-            "overlay",
-            "h-8 w-8 backdrop-blur-sm sm:h-9 sm:w-9",
-          )}
-        >
-          <FiShuffle className="h-4 w-4" />
-        </IconButton>
         <IconButton
           label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
           onClick={toggleWishlist}
@@ -944,13 +862,11 @@ const LandingSectionProductCard = ({
     discountLabel,
     pricing,
     showCartButton,
-    isCompared,
     isInCart,
     isWishlisted,
     wishlistLoading,
     toggleProductCart,
     onViewDetails: handleViewDetails,
-    toggleCompare,
     toggleWishlist,
   };
 

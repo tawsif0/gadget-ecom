@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FiEye, FiHeart, FiShoppingBag, FiShuffle } from "react-icons/fi";
+import { FiEye, FiHeart, FiShoppingBag } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,11 +12,8 @@ import {
   selectWishlistPendingIds,
   toggleWishlistItem,
 } from "../../store/wishlistSlice";
-import {
-  COMPARE_LIMIT_MESSAGE,
-  MAX_COMPARE_ITEMS,
-  toggleCompareItem,
-} from "../../store/compareSlice";
+
+
 import { createProductSnapshot } from "../../utils/productSnapshot";
 import { useCart } from "../../context/CartContext";
 import {
@@ -151,15 +148,8 @@ const getCategoryLabel = (product, badgeText = "") => {
     return String(badgeText).trim();
   }
 
-  return "General";
+  return "Latest";
 };
-
-const getCompareButtonClassName = (isCompared) =>
-  `inline-flex h-7 w-7 items-center justify-center rounded-full border shadow-sm transition sm:h-9 sm:w-9 ${
-    isCompared
-      ? "border-black bg-black text-white"
-      : "border-gray-200 bg-white text-gray-700 hover:border-black hover:text-black"
-  }`;
 
 const getCartButtonClassName = (isInCart) =>
   `inline-flex h-10 w-10 items-center justify-center rounded-[14px] border transition sm:h-[42px] sm:w-[42px] ${
@@ -178,7 +168,6 @@ const StorefrontProductCard = ({
   buttonLabel = "View details",
   className = "",
   onViewDetails,
-  showCompareButton = true,
   showWishlistButton = true,
   showCartButton = true,
   onCartActionComplete,
@@ -187,7 +176,7 @@ const StorefrontProductCard = ({
   const navigate = useNavigate();
   const { isCartItemPresent, toggleCartItem } = useCart();
   const settings = useSelector(selectPublicSettings);
-  const compareItems = useSelector((state) => state.compare.items || []);
+  
   const wishlistItems = useSelector((state) => state.wishlist.items || []);
   const wishlistPendingIds = useSelector(selectWishlistPendingIds);
   const productId = String(product?._id || product?.id || "").trim();
@@ -229,9 +218,6 @@ const StorefrontProductCard = ({
     Boolean(stockBadgeText) && isPublicStockVisible(product, settings);
   const showCardCartButton =
     showCartButton && !hasVariantOptionPricing(product);
-  const isCompared = compareItems.some(
-    (item) => String(item?._id || "") === productId,
-  );
   const isWishlisted = wishlistItems.some(
     (item) => String(item?._id || "") === productId,
   );
@@ -298,7 +284,16 @@ const StorefrontProductCard = ({
   const handleViewDetails = () => {
     if (typeof onViewDetails === "function") {
       onViewDetails(product);
+      return;
     }
+
+    const resolvedId = String(productId || product?._id || product?.id || "").trim();
+    if (resolvedId) {
+      navigate(`/product/${encodeURIComponent(resolvedId)}`);
+      return;
+    }
+
+    navigate("/shop");
   };
 
   const handleKeyDown = (event) => {
@@ -306,17 +301,6 @@ const StorefrontProductCard = ({
       event.preventDefault();
       handleViewDetails();
     }
-  };
-
-  const handleToggleCompare = (event) => {
-    event.stopPropagation();
-    const snapshot = createProductSnapshot(product);
-    if (!snapshot) return;
-    if (!isCompared && compareItems.length >= MAX_COMPARE_ITEMS) {
-      toast.error(COMPARE_LIMIT_MESSAGE);
-      return;
-    }
-    dispatch(toggleCompareItem(snapshot));
   };
 
   const handleToggleWishlist = async (event) => {
@@ -381,17 +365,6 @@ const StorefrontProductCard = ({
               {discountLabel}
             </span>
           ) : null}
-          {showCompareButton ? (
-            <button
-              type="button"
-              onClick={handleToggleCompare}
-              className={getCompareButtonClassName(isCompared)}
-              aria-label={isCompared ? "Remove from compare" : "Add to compare"}
-              title={isCompared ? "Remove from compare" : "Add to compare"}
-            >
-              <FiShuffle className="h-3 w-3 sm:h-4 sm:w-4" />
-            </button>
-          ) : null}
           {topRightSlot}
         </div>
 
@@ -412,10 +385,6 @@ const StorefrontProductCard = ({
           >
             {title || product?.title}
           </h3>
-
-          {product?.brand ? (
-            <p className="line-clamp-1 text-[11px] text-gray-500 sm:text-xs">{`Brand: ${product.brand}`}</p>
-          ) : null}
 
           {displayMetaLine ? (
             <div className="flex items-center gap-2">

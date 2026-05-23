@@ -1,7 +1,6 @@
 const Product = require("../models/Product.js");
 const Category = require("../models/Category.js");
 const ProductImage = require("../models/ProductImage");
-const Brand = require("../models/Brand");
 const Vendor = require("../models/Vendor");
 const {
   attachImageDataToProducts,
@@ -82,13 +81,7 @@ const invalidatePublicProductCache = () => {
 };
 const HOME_CATALOG_PRODUCT_SELECT =
   "title price salePrice priceType showStockToPublic images videos video youtubeVideoUrls youtubeVideoUrl category brand description colors features dimensions vendor productType marketplaceType stock allowBackorder variations variantDefinitions deliveryMinDays deliveryMaxDays ratingAverage ratingCount createdAt";
-const HOME_CATALOG_TYPES = [
-  "Popular",
-  "Hot deals",
-  "General",
-  "Best Selling",
-  "Latest",
-];
+const HOME_CATALOG_TYPES = ["Latest"];
 const HOME_CATALOG_PRODUCTS_PER_CATEGORY = 12;
 
 const getApprovedVendorForUser = async (userId) => {
@@ -105,29 +98,29 @@ const normalizeProductTypeLabel = (value) => {
   const match = HOME_CATALOG_TYPES.find(
     (entry) => entry.toLowerCase() === raw,
   );
-  return match || "General";
+  return match || "Latest";
 };
 
 const resolveProductCategoryIdentity = (product) => {
   const productCategory = product?.category;
 
   if (productCategory && typeof productCategory === "object") {
-    return {
-      id: String(productCategory._id || "general"),
-      name: String(productCategory.name || "General").trim() || "General",
-    };
-  }
+      return {
+        id: String(productCategory._id || "general"),
+        name: String(productCategory.name || "Latest").trim() || "Latest",
+      };
+    }
 
   if (typeof productCategory === "string" && productCategory.trim()) {
     return {
       id: productCategory.trim(),
-      name: "General",
+      name: "Latest",
     };
   }
 
   return {
     id: "general",
-    name: "General",
+    name: "Latest",
   };
 };
 
@@ -174,51 +167,6 @@ const buildHomeCatalogSections = (products = []) => {
   });
 
   return sections;
-};
-
-const buildHomeCatalogBrands = async (products = []) => {
-  const productBrandNames = Array.from(
-    new Set(
-      products
-        .map((product) => String(product?.brand || "").trim())
-        .filter(Boolean),
-    ),
-  );
-
-  const brands = await Brand.find({ isActive: true })
-    .select("name logoUrl description")
-    .sort({ name: 1 })
-    .lean();
-
-  const merged = [];
-  const seen = new Set();
-
-  brands.forEach((brand) => {
-    const name = String(brand?.name || "").trim();
-    if (!name) return;
-
-    const key = name.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    merged.push({
-      name,
-      logoUrl: String(brand?.logoUrl || "").trim(),
-      description: String(brand?.description || "").trim(),
-    });
-  });
-
-  productBrandNames.forEach((name) => {
-    const key = name.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    merged.push({
-      name,
-      logoUrl: "",
-      description: "Shop brand collection",
-    });
-  });
-
-  return merged;
 };
 
 const MARKETPLACE_TYPES = new Set([
@@ -899,7 +847,7 @@ exports.createProduct = async (req, res) => {
     const title = asString(req.body.title).trim();
     const description = asString(req.body.description).trim();
     const category = req.body.category;
-    let productType = asString(req.body.productType || "General").trim() || "General";
+    let productType = asString(req.body.productType || "Latest").trim() || "Latest";
     const brand = asString(req.body.brand).trim();
     const costing = asNonNegativeNumber(req.body.costing, 0);
     const youtubeVideoUrls = normalizeYouTubeVideoUrls(
@@ -1235,20 +1183,22 @@ exports.getProductsByType = async (req, res) => {
     const escapeRegex = (value) =>
       String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    const typeRegex = new RegExp(`^\\s*${escapeRegex(requestedType)}\\s*$`, "i");
-    const isGeneralRequest = /^general$/i.test(requestedType);
+    const normalizedType = requestedType.toLowerCase();
+    const normalizedEffectiveType =
+      normalizedType === "general" ||
+      normalizedType === "popular" ||
+      normalizedType === "hot deals" ||
+      normalizedType === "hotdeals" ||
+      normalizedType === "best selling" ||
+      normalizedType === "best-selling"
+        ? "latest"
+        : normalizedType;
+    const typeRegex = new RegExp(
+      `^\\s*${escapeRegex(normalizedEffectiveType)}\\s*$`,
+      "i",
+    );
 
-    const categoryQuery = isGeneralRequest
-      ? {
-          isActive: true,
-          $or: [
-            { type: typeRegex },
-            { type: { $exists: false } },
-            { type: null },
-            { type: "" },
-          ],
-        }
-      : { isActive: true, type: typeRegex };
+    const categoryQuery = { isActive: true, type: typeRegex };
 
     const categoryRows = await Category.find(categoryQuery).select("_id").lean();
     const categoryIds = categoryRows.map((row) => row._id).filter(Boolean);
@@ -1309,15 +1259,11 @@ exports.getHomeCatalog = async (_req, res) => {
     await attachImageDataToProducts(products);
 
     const visibleProducts = filterPublicProductsByVendor(products);
-    const [sections, brands] = await Promise.all([
-      Promise.resolve(buildHomeCatalogSections(visibleProducts)),
-      buildHomeCatalogBrands(visibleProducts),
-    ]);
+    const sections = buildHomeCatalogSections(visibleProducts);
 
     res.json({
       success: true,
       sections,
-      brands,
       fetchedAt: new Date().toISOString(),
     });
   } catch (error) {
@@ -1525,10 +1471,10 @@ exports.updateProduct = async (req, res) => {
           : product.description,
       category: req.body.category || product.category,
       productType: nextCategoryDoc?.type
-        ? asString(nextCategoryDoc.type).trim() || "General"
+        ? asString(nextCategoryDoc.type).trim() || "Latest"
         : req.body.productType !== undefined
-          ? asString(req.body.productType).trim() || "General"
-          : product.productType || "General",
+          ? asString(req.body.productType).trim() || "Latest"
+          : product.productType || "Latest",
       brand:
         req.body.brand !== undefined
           ? asString(req.body.brand).trim()
@@ -2007,7 +1953,7 @@ exports.duplicateProduct = async (req, res) => {
       allowBackorder: sourceObj.allowBackorder === true,
       showStockToPublic: sourceObj.showStockToPublic === true,
       category: sourceObj.category,
-      productType: sourceObj.productType || "General",
+      productType: sourceObj.productType || "Latest",
       marketplaceType: sourceObj.marketplaceType || "simple",
       brand: sourceObj.brand || "",
       weight: sourceObj.weight || 0,
@@ -2213,7 +2159,7 @@ exports.getSearchSuggestions = async (req, res) => {
         image: imageUrl,
         category: product.category?.name || "Uncategorized",
         brand: product.brand || "",
-        productType: product.productType || "General",
+        productType: product.productType || "Latest",
         marketplaceType: product.marketplaceType || "simple",
         vendor: product.vendor || null,
         type: "product",
