@@ -115,7 +115,7 @@ const CategoryTypeShowcaseSection = ({ categories = [] }) => {
                         <div className="absolute inset-0 bg-black/0 transition-all duration-500 group-hover:bg-black/30" />
 
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                          <span className="translate-y-8 bg-white px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-black opacity-0 shadow-lg transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 group-hover:bg-black group-hover:text-white">
+                          <span className="translate-y-8 bg-white px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-black opacity-0 shadow-lg transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 group-hover:bg-[var(--brand-theme-color)] group-hover:text-[var(--brand-button-text-color)]">
                             Shop
                           </span>
                         </div>

@@ -398,11 +398,7 @@ const Home = () => {
               {validLatestProducts.length >= 16 ? (
                 <div className="mt-12 flex justify-center">
                   <Link
-                    to={
-                      latestCategoryId
-                        ? `/shop?category=${encodeURIComponent(latestCategoryId)}`
-                        : "/shop"
-                    }
+                    to="/shop?collection=new-arrivals"
                     className="inline-flex items-center justify-center bg-black px-10 py-3 text-xs font-bold uppercase tracking-[0.18em] text-white transition hover:bg-black/80"
                   >
                     View More

@@ -72,6 +72,7 @@ const LuxeProductTile = ({ product }) => {
   const imageUrl = getProductPrimaryImage(product);
   const pricing = useMemo(() => getProductCardPricingDisplay(product), [product]);
   const discountText = buildDiscountText(pricing);
+  const href = productId ? `/product/${encodeURIComponent(productId)}` : "/shop";
 
   const currencySymbol =
     normalizeText(import.meta.env.VITE_STORE_CURRENCY_SYMBOL) || "Tk ";
@@ -84,7 +85,10 @@ const LuxeProductTile = ({ product }) => {
       : formatCurrencyAmount(pricing.previousPrice, currencySymbol);
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden bg-white shadow-[0px_4px_20px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0px_8px_30px_rgba(0,0,0,0.08)]">
+    <Link
+      to={href}
+      className="group flex h-full flex-col overflow-hidden bg-white shadow-[0px_4px_20px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0px_8px_30px_rgba(0,0,0,0.08)]"
+    >
       <div className="relative aspect-square overflow-hidden bg-slate-50">
         {imageUrl ? (
           <img
@@ -114,17 +118,13 @@ const LuxeProductTile = ({ product }) => {
               </span>
             ) : null}
           </p>
-          <Link
-            to={productId ? `/product/${encodeURIComponent(productId)}` : "/shop"}
-            className="mt-3 inline-flex w-full items-center justify-center border border-slate-200 py-2 text-[12px] font-bold uppercase tracking-wide text-black transition-all duration-300 hover:border-black hover:bg-black hover:text-white"
-          >
+          <div className="mt-3 inline-flex w-full items-center justify-center border border-slate-200 py-2 text-[12px] font-bold uppercase tracking-wide text-black transition-all duration-300 group-hover:border-[var(--brand-theme-color)] group-hover:bg-[var(--brand-theme-color)] group-hover:text-[var(--brand-button-text-color)]">
             View Details
-          </Link>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
 export default LuxeProductTile;
-

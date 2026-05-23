@@ -111,6 +111,12 @@ const LatestProducts = () => {
   const [showAllProducts, setShowAllProducts] = useState({});
   const navigate = useNavigate();
 
+  const goToProduct = (productId) => {
+    if (!productId) return;
+    navigate(`/product/${productId}`);
+    window.scrollTo(0, 0);
+  };
+
   // Fetch Latest products using PUBLIC route
   const fetchLatestProducts = async () => {
     try {
@@ -418,18 +424,23 @@ const LatestProducts = () => {
                 return (
                   <div
                     key={product.id}
-                    className="group flex h-full w-full basis-[calc(33.333%-0.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-lg sm:basis-[calc(33.333%-0.75rem)] md:basis-[calc(25%-0.75rem)] lg:basis-[calc(20%-0.75rem)]"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => goToProduct(product.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        goToProduct(product.id);
+                      }
+                    }}
+                    className="group flex h-full w-full basis-[calc(33.333%-0.5rem)] cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/40 sm:basis-[calc(33.333%-0.75rem)] md:basis-[calc(25%-0.75rem)] lg:basis-[calc(20%-0.75rem)]"
                     style={{
                       animationDelay: `${index * 100}ms`,
                     }}
                   >
                     {/* Product Image */}
                     <div
-                      className="relative overflow-hidden bg-linear-to-br from-gray-50 via-white to-gray-100 p-2 sm:p-2.5 cursor-pointer"
-                      onClick={() => {
-                        navigate(`/product/${product.id}`);
-                        window.scrollTo(0, 0);
-                      }}
+                      className="relative overflow-hidden bg-linear-to-br from-gray-50 via-white to-gray-100 p-2 sm:p-2.5"
                     >
                       <div className="relative aspect-square rounded-xl overflow-hidden bg-white shadow-sm ring-1 ring-gray-200/60">
                         <ProductImage
@@ -450,8 +461,7 @@ const LatestProducts = () => {
                     <div className="flex flex-1 flex-col px-3 py-2.5 text-left sm:px-4 sm:py-3">
                       <div className="space-y-1">
                         <h3
-                          className="line-clamp-2 cursor-pointer text-[13px] font-semibold leading-snug text-black hover:text-gray-700 sm:text-sm"
-                          onClick={() => navigate(`/product/${product.id}`)}
+                          className="line-clamp-2 text-[13px] font-semibold leading-snug text-black hover:text-gray-700 sm:text-sm"
                         >
                           {product.title}
                         </h3>
@@ -498,9 +508,9 @@ const LatestProducts = () => {
                           )}
                         </div>
                         <button
-                          onClick={() => {
-                            navigate(`/product/${product.id}`);
-                            window.scrollTo(0, 0);
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            goToProduct(product.id);
                           }}
                           className="flex h-8 w-full items-center justify-center gap-1 rounded-none bg-gray-900 px-3 text-xs font-semibold text-white transition hover:bg-black sm:h-9 sm:gap-2 sm:text-sm"
                         >

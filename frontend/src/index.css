@@ -814,6 +814,20 @@ input[type="submit"].bg-slate-900 {
   color: var(--brand-button-text-color) !important;
 }
 
+button.hover\:bg-black:hover,
+button.hover\:bg-gray-900:hover,
+button.hover\:bg-slate-900:hover,
+a.hover\:bg-black:hover,
+a.hover\:bg-gray-900:hover,
+a.hover\:bg-slate-900:hover,
+input[type="submit"].hover\:bg-black:hover,
+input[type="submit"].hover\:bg-gray-900:hover,
+input[type="submit"].hover\:bg-slate-900:hover {
+  background-color: var(--brand-theme-color) !important;
+  border-color: var(--brand-theme-color) !important;
+  color: var(--brand-button-text-color) !important;
+}
+
 .app-btn-primary:hover:not(:disabled),
 .app-btn-secondary:hover:not(:disabled),
 .app-btn-ghost:hover:not(:disabled),
