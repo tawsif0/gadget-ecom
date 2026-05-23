@@ -444,7 +444,7 @@ function ModifyBanner() {
 
       cancelForm();
       fetchBanners();
-      window.dispatchEvent(new CustomEvent("bannerCreated"));
+      window.dispatchEvent(new CustomEvent(editingId ? "bannerUpdated" : "bannerCreated"));
     } catch (err) {
       let errorMessage = editingId
         ? "Failed to update banner"
