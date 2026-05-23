@@ -204,6 +204,7 @@ const Home = () => {
       try {
         const response = await axios.get(`${baseUrl}/categories/public`, {
           timeout: 8000,
+          params: { ts: Date.now() },
         });
         const next = response.data?.success
           ? response.data.categories || []
@@ -221,9 +222,12 @@ const Home = () => {
     };
 
     loadCategories();
+    const handleCategoryUpdated = () => loadCategories();
+    window.addEventListener("categoryUpdated", handleCategoryUpdated);
 
     return () => {
       active = false;
+      window.removeEventListener("categoryUpdated", handleCategoryUpdated);
     };
   }, []);
 
@@ -347,6 +351,15 @@ const Home = () => {
     return sorted;
   }, [allProducts, sliderCategoryId]);
 
+  const customSectionCategories = useMemo(() => {
+    const hiddenTypes = new Set(["latest", "general", "package"]);
+    return (categories || []).filter((category) => {
+      const type = String(category?.type || "").trim().toLowerCase();
+      if (!type) return false;
+      return !hiddenTypes.has(type);
+    });
+  }, [categories]);
+
   return (
     <>
       <div className="">
@@ -402,7 +415,7 @@ const Home = () => {
 
         {/* Custom Category Grid */}
         <DeferredSection minHeightClassName="min-h-[520px]">
-          <CategoryTypeShowcaseSection categories={categories} />
+          <CategoryTypeShowcaseSection categories={customSectionCategories} />
         </DeferredSection>
 
         {/* First Type Category Slider */}

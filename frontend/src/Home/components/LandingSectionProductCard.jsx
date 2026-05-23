@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import {
   FiEye,
   FiHeart,
-  FiShoppingBag,
   FiStar,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
@@ -459,19 +458,6 @@ const PopularCard = ({
           {pricing.isTba ? "TBA" : formatPrice(pricing.currentPrice)}
         </span>
         <div className="flex items-center gap-1.5 sm:gap-3">
-          {showCartButton ? (
-            <IconButton
-              label={isInCart ? "Remove from cart" : "Add to cart"}
-              onClick={toggleProductCart}
-              className={getCartIconButtonClassName(
-                isInCart,
-                "dark",
-                "h-8 w-8 sm:h-9 sm:w-9",
-              )}
-            >
-              <FiShoppingBag className="h-4 w-4" />
-            </IconButton>
-          ) : null}
           <IconButton
             label="View details"
             onClick={(event) => {
@@ -550,19 +536,6 @@ const HotDealCard = ({
           ) : null}
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {showCartButton ? (
-            <IconButton
-              label={isInCart ? "Remove from cart" : "Add to cart"}
-              onClick={toggleProductCart}
-              className={getCartIconButtonClassName(
-                isInCart,
-                "light",
-                "h-8 w-8 sm:h-9 sm:w-9",
-              )}
-            >
-              <FiShoppingBag className="h-4 w-4" />
-            </IconButton>
-          ) : null}
           <IconButton
             label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             onClick={toggleWishlist}
@@ -635,19 +608,6 @@ const FeaturedCard = ({
         {product?.title}
       </h3>
       <div className="mt-auto flex items-center gap-2.5 pt-3 sm:gap-4 sm:pt-4">
-        {showCartButton ? (
-          <IconButton
-            label={isInCart ? "Remove from cart" : "Add to cart"}
-            onClick={toggleProductCart}
-            className={getCartIconButtonClassName(
-              isInCart,
-              "light",
-              "h-8 w-8 sm:h-9 sm:w-9",
-            )}
-          >
-            <FiShoppingBag className="h-4 w-4" />
-          </IconButton>
-        ) : null}
         <IconButton
           label="View details"
           onClick={(event) => {
@@ -718,20 +678,6 @@ const BestSellingCard = ({
             {pricing.isTba ? "TBA" : formatPrice(pricing.currentPrice)}
           </span>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {showCartButton ? (
-              <IconButton
-                label={isInCart ? "Remove from cart" : "Add to cart"}
-                onClick={toggleProductCart}
-                className={getCartIconButtonClassName(
-                  isInCart,
-                  "light",
-                  "h-8 w-8 sm:h-9 sm:w-9",
-                )}
-              >
-                <FiShoppingBag className="h-4 w-4" />
-              </IconButton>
-            ) : null}
-
             <IconButton
               label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
               onClick={toggleWishlist}
@@ -785,19 +731,6 @@ const LatestCard = ({
         className="h-full w-full object-cover transition-transform duration-700"
       />
       <div className="absolute bottom-3 right-3 flex gap-1.5 sm:gap-2">
-        {showCartButton ? (
-          <IconButton
-            label={isInCart ? "Remove from cart" : "Add to cart"}
-            onClick={toggleProductCart}
-            className={getCartIconButtonClassName(
-              isInCart,
-              "overlay",
-              "h-8 w-8 sm:h-9 sm:w-9",
-            )}
-          >
-            <FiShoppingBag className="h-4 w-4" />
-          </IconButton>
-        ) : null}
         <IconButton
           label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
           onClick={toggleWishlist}

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FiEye, FiHeart, FiShoppingBag } from "react-icons/fi";
+import { FiEye, FiHeart } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
@@ -14,8 +14,6 @@ import {
 } from "../../store/wishlistSlice";
 
 
-import { createProductSnapshot } from "../../utils/productSnapshot";
-import { useCart } from "../../context/CartContext";
 import {
   getDefaultSelectedVariants,
   getProductPricingForSelectedVariants,
@@ -151,13 +149,6 @@ const getCategoryLabel = (product, badgeText = "") => {
   return "Latest";
 };
 
-const getCartButtonClassName = (isInCart) =>
-  `inline-flex h-10 w-10 items-center justify-center rounded-[14px] border transition sm:h-[42px] sm:w-[42px] ${
-    isInCart
-      ? "border-emerald-600 bg-emerald-600 text-white hover:border-emerald-700 hover:bg-emerald-700"
-      : "border-gray-200 bg-white text-black hover:border-black hover:bg-gray-50"
-  }`;
-
 const StorefrontProductCard = ({
   product,
   title,
@@ -169,12 +160,10 @@ const StorefrontProductCard = ({
   className = "",
   onViewDetails,
   showWishlistButton = true,
-  showCartButton = true,
   onCartActionComplete,
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { isCartItemPresent, toggleCartItem } = useCart();
   const settings = useSelector(selectPublicSettings);
   
   const wishlistItems = useSelector((state) => state.wishlist.items || []);
@@ -216,19 +205,10 @@ const StorefrontProductCard = ({
   );
   const showStockBadge =
     Boolean(stockBadgeText) && isPublicStockVisible(product, settings);
-  const showCardCartButton =
-    showCartButton && !hasVariantOptionPricing(product);
   const isWishlisted = wishlistItems.some(
     (item) => String(item?._id || "") === productId,
   );
   const wishlistLoading = wishlistPendingIds.includes(productId);
-  const isInCart = isCartItemPresent(
-    productId,
-    "",
-    "",
-    "",
-    selectedVariantSignature,
-  );
 
   useEffect(() => {
     setSelectedVariants((currentSelections) => {
@@ -313,27 +293,6 @@ const StorefrontProductCard = ({
       );
     } catch (error) {
       toast.error(error || "Failed to update wishlist");
-    }
-  };
-
-  const handleAddToCart = async (event) => {
-    event.stopPropagation();
-
-    const marketplaceType = String(product?.marketplaceType || "simple")
-      .trim()
-      .toLowerCase();
-    if (marketplaceType === "grouped") {
-      toast("Choose grouped items on the product details page first.");
-      navigate(`/product/${productId || product?._id || product?.id}`);
-      return;
-    }
-
-    const result = await toggleCartItem(product, 1, "", "", {
-      selectedVariants: resolvedSelectedVariants,
-    });
-
-    if (typeof onCartActionComplete === "function") {
-      await onCartActionComplete(result, product);
     }
   };
 
@@ -436,17 +395,6 @@ const StorefrontProductCard = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {showCardCartButton ? (
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className={getCartButtonClassName(isInCart)}
-                aria-label={isInCart ? "Remove from cart" : "Add to cart"}
-                title={isInCart ? "Remove from cart" : "Add to cart"}
-              >
-                <FiShoppingBag className="h-4 w-4" />
-              </button>
-            ) : null}
             <button
               type="button"
               onClick={(event) => {

@@ -1,6 +1,12 @@
 const { CategoryType, normalizeTypeName } = require("../models/CategoryType");
 const Category = require("../models/Category");
 const Product = require("../models/Product");
+const { clearResponseCacheByPrefix } = require("../middlewares/responseCache");
+
+const invalidatePublicCatalogCache = () => {
+  clearResponseCacheByPrefix("/api/categories/public");
+  clearResponseCacheByPrefix("/api/products/public");
+};
 
 const toRegexExactInsensitive = (value) => {
   const normalized = String(value || "").trim();
@@ -41,6 +47,7 @@ const createCategoryType = async (req, res) => {
     }
 
     const type = await CategoryType.create({ name });
+    invalidatePublicCatalogCache();
 
     res.status(201).json({ success: true, message: "Type created", type });
   } catch (error) {
@@ -84,6 +91,7 @@ const updateCategoryType = async (req, res) => {
         Product.updateMany({ productType: oldNameRegex }, { $set: { productType: nextName, updatedAt: Date.now() } }),
       ]);
     }
+    invalidatePublicCatalogCache();
 
     res.json({ success: true, message: "Type updated", type: existing });
   } catch (error) {
@@ -111,6 +119,7 @@ const deleteCategoryType = async (req, res) => {
     }
 
     await CategoryType.deleteOne({ _id: existing._id });
+    invalidatePublicCatalogCache();
 
     res.json({ success: true, message: "Type deleted" });
   } catch (error) {
@@ -125,4 +134,3 @@ module.exports = {
   updateCategoryType,
   deleteCategoryType,
 };
-

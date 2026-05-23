@@ -13,7 +13,13 @@ const { upload, handleMulterError } = require("../middlewares/upload");
 const responseCache = require("../middlewares/responseCache");
 
 // Public
-router.get("/public", responseCache(120000), getPublicCategories);
+router.get(
+  "/public",
+  responseCache(120000, {
+    cacheControl: "public, max-age=0, must-revalidate",
+  }),
+  getPublicCategories,
+);
 
 // Protected
 router.get("/", auth, getCategories);

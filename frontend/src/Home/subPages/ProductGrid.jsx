@@ -5,12 +5,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import {
+ import {
   FiFilter,
   FiX,
   FiEye,
   FiHeart,
-  FiShoppingBag,
   FiChevronDown,
   FiChevronUp,
 } from "react-icons/fi";
@@ -1337,14 +1336,9 @@ const ProductGrid = () => {
 
                                     {/* Price & View Button - Right Aligned */}
                                     <div className="flex flex-col items-end gap-4 mt-2 lg:mt-0 lg:text-right">
-                                      {(() => {
-                                        const inCart = isProductInCart(
-                                          product._id,
-                                        );
-                                        const showCardCartButton =
-                                          !hasVariantOptionPricing(product);
-                                        return (
-                                          <>
+	                                      {(() => {
+	                                        return (
+	                                          <>
                                             {pricing.isTba ? (
                                               <div className="text-2xl font-bold text-black whitespace-nowrap">
                                                 TBA
@@ -1359,31 +1353,13 @@ const ProductGrid = () => {
                                                 <div className="text-2xl font-bold text-black">
                                                   {`${Number(pricing.currentPrice || 0).toFixed(2)} Tk`}
                                                 </div>
-                                              </div>
-                                              )}
-                                              <div className="flex items-center gap-2">
-                                                {showCardCartButton ? (
-                                                <button
-                                                  type="button"
-                                                  onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    await handleToggleCart(
-                                                      product,
-                                                    );
-                                                  }}
-                                                  className={`inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition-colors ${
-                                                    inCart
-                                                      ? "border-emerald-600 bg-emerald-600 text-white hover:border-emerald-700 hover:bg-emerald-700"
-                                                      : "border-gray-300 bg-white text-gray-600 hover:border-black hover:text-black"
-                                                  }`}
-                                                >
-                                                  <FiShoppingBag className="h-4 w-4" />
-                                                </button>
-                                              ) : null}
-                                              <button
-                                                type="button"
-                                                onClick={async (e) => {
-                                                  e.stopPropagation();
+	                                              </div>
+	                                              )}
+	                                              <div className="flex items-center gap-2">
+	                                              <button
+	                                                type="button"
+	                                                onClick={async (e) => {
+	                                                  e.stopPropagation();
                                                   await handleToggleWishlist(
                                                     product,
                                                   );
