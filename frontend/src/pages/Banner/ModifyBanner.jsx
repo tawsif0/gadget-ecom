@@ -150,7 +150,7 @@ function ModifyBanner() {
       setBanners(bannersData);
     } catch (err) {
       toast.error(
-        err.response?.data?.message || err.message || "Failed to load banners"
+        err.response?.data?.message || err.message || "Failed to load banners",
       );
 
       if (err.response?.status === 401) {
@@ -203,7 +203,7 @@ function ModifyBanner() {
     } catch (err) {
       toast.error(
         err.response?.data?.message || err.message || "Failed to delete banner",
-        { id: toastId }
+        { id: toastId },
       );
     } finally {
       setIsDeleting(false);
@@ -394,7 +394,7 @@ function ModifyBanner() {
 
     setIsSubmitting(true);
     const toastId = toast.loading(
-      editingId ? "Updating banner..." : "Creating banner..."
+      editingId ? "Updating banner..." : "Creating banner...",
     );
 
     try {
@@ -444,7 +444,9 @@ function ModifyBanner() {
 
       cancelForm();
       fetchBanners();
-      window.dispatchEvent(new CustomEvent(editingId ? "bannerUpdated" : "bannerCreated"));
+      window.dispatchEvent(
+        new CustomEvent(editingId ? "bannerUpdated" : "bannerCreated"),
+      );
     } catch (err) {
       let errorMessage = editingId
         ? "Failed to update banner"
@@ -484,19 +486,19 @@ function ModifyBanner() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="w-full"
-    >
+        transition={{ duration: 0.5 }}
+        className="w-full"
+      >
         <div className="w-full">
-        <div className="mb-4">
-          <button
-            onClick={cancelForm}
-            className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            <FiArrowLeft className="h-4 w-4" />
-            Back to banners
-          </button>
-        </div>
+          <div className="mb-4">
+            <button
+              onClick={cancelForm}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <FiArrowLeft className="h-4 w-4" />
+              Back to banners
+            </button>
+          </div>
 
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
@@ -538,7 +540,9 @@ function ModifyBanner() {
                       </label>
                       <RichTextEditor
                         value={form.description}
-                        onChange={(value) => setForm((prev) => ({ ...prev, description: value }))}
+                        onChange={(value) =>
+                          setForm((prev) => ({ ...prev, description: value }))
+                        }
                         placeholder="Enter banner description"
                         minHeight={180}
                       />
@@ -550,7 +554,9 @@ function ModifyBanner() {
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
                         <label className="block">
-                          <span className={dashboardLabelClass}>Button Label</span>
+                          <span className={dashboardLabelClass}>
+                            Button Label
+                          </span>
                         </label>
                         <input
                           type="text"
@@ -567,7 +573,9 @@ function ModifyBanner() {
 
                       <div>
                         <label className="block">
-                          <span className={dashboardLabelClass}>Button Link</span>
+                          <span className={dashboardLabelClass}>
+                            Button Link
+                          </span>
                         </label>
                         <input
                           type="text"
@@ -661,7 +669,7 @@ function ModifyBanner() {
                           />
                           <label
                             htmlFor="banner-image-upload"
-                          className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 md:text-base"
+                            className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 md:text-base"
                           >
                             <FiImage /> Upload Image
                           </label>
@@ -847,7 +855,7 @@ function ModifyBanner() {
                                 Created:{" "}
                                 {banner.createdAt
                                   ? new Date(
-                                      banner.createdAt
+                                      banner.createdAt,
                                     ).toLocaleDateString()
                                   : "N/A"}
                               </span>

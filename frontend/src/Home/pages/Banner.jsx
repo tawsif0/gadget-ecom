@@ -146,14 +146,8 @@ const Banner = () => {
   const fetchBanners = useCallback(async () => {
     try {
       setLoading(true);
-      const cacheBuster = Date.now();
-      const response = await fetch(`${baseUrl}/banners/public?cb=${cacheBuster}`, {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
+      setLoading(true);
+      const response = await fetch(`${baseUrl}/banners/public`);
       const data = await response.json();
 
       let bannersData = [];
@@ -334,10 +328,13 @@ const Banner = () => {
   const currentBanner = banners[activeIndex];
   const bannerButtonLabel = String(currentBanner?.buttonLabel || "").trim();
   const bannerButtonLink = normalizeLink(
-    currentBanner?.buttonLink || currentBanner?.link || (bannerButtonLabel ? "/shop" : ""),
+    currentBanner?.buttonLink ||
+      currentBanner?.link ||
+      (bannerButtonLabel ? "/shop" : ""),
   );
   const shouldShowBannerButton = Boolean(
-    bannerButtonLabel || String(currentBanner?.buttonLink || currentBanner?.link || "").trim(),
+    bannerButtonLabel ||
+    String(currentBanner?.buttonLink || currentBanner?.link || "").trim(),
   );
   const resolvedBannerButtonLabel = bannerButtonLabel || "Learn More";
 
@@ -562,7 +559,10 @@ const Banner = () => {
                       className="absolute inset-0 bg-white rounded-full origin-left"
                       initial={{ scaleX: 0 }}
                       animate={{ scaleX: 1 }}
-                      transition={{ duration: slideDurationMs / 1000, ease: "linear" }}
+                      transition={{
+                        duration: slideDurationMs / 1000,
+                        ease: "linear",
+                      }}
                     />
                   )}
 
