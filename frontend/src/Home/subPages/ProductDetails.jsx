@@ -1985,90 +1985,7 @@ const ProductDetails = () => {
         <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-10">
           {/* Product images */}
           <div className="storefront-sticky-offset lg:sticky lg:self-start">
-            <div className="flex flex-col-reverse gap-4 md:flex-row md:items-start md:gap-6">
-              {productMediaItems.length > 1 ? (
-                <div className="mx-auto flex items-center justify-center gap-3 md:mx-0 md:flex-col">
-                  {hasThumbnailPagination ? (
-                    <button
-                      type="button"
-                      data-no-scroll-top
-                      onClick={showPreviousThumbnailPage}
-                      disabled={!canShowPreviousThumbnailPage}
-                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
-                      aria-label="Previous thumbnails"
-                    >
-                      <FaChevronLeft className="h-4 w-4 md:-rotate-90" />
-                    </button>
-                  ) : null}
-
-                  <div className="w-full max-w-73flow-hidden md:w-16 md:max-w-16w-[4.5rem] lg:max-w-18">
-                    <div className="grid grid-cols-4 gap-3 md:grid-cols-1">
-                      {visibleThumbnailItems.map(({ mediaItem, index }) => (
-                        <button
-                          key={mediaItem.key}
-                          type="button"
-                          data-no-scroll-top
-                          onClick={() => setSelectedImage(index)}
-                          className={`aspect-square w-16 shrink-0 overflow-hidden rounded-2xl border bg-white p-2 transition-all hover:scale-95 active:scale-90 lg:w-18 ${
-                            selectedImage === index
-                              ? "border-2 border-black shadow-[0_10px_22px_rgba(0,0,0,0.08)]"
-                              : "border-black/10 hover:border-black/70"
-                          }`}
-                        >
-                          {mediaItem.type === "youtube" ? (
-                            <div className="relative h-full w-full overflow-hidden rounded-xl bg-black">
-                              <img
-                                src={mediaItem.thumbnailSrc}
-                                alt={mediaItem.alt}
-                                className="h-full w-full object-cover"
-                              />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
-                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/92 shadow-lg ring-1 ring-black/5">
-                                  <FaYoutube className="h-4 w-4 text-red-600" />
-                                </span>
-                              </div>
-                            </div>
-                          ) : mediaItem.type === "video" ? (
-                            <div className="relative h-full w-full overflow-hidden rounded-xl bg-black">
-                              <video
-                                src={mediaItem.src}
-                                className="h-full w-full object-cover"
-                                muted
-                                preload="metadata"
-                              />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 text-white">
-                                <span className="rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold text-black">
-                                  Video
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <ProductImage
-                              src={mediaItem.src}
-                              alt={mediaItem.alt}
-                              className="h-full w-full object-contain mix-blend-multiply"
-                            />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {hasThumbnailPagination ? (
-                    <button
-                      type="button"
-                      data-no-scroll-top
-                      onClick={showNextThumbnailPage}
-                      disabled={!canShowNextThumbnailPage}
-                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
-                      aria-label="Next thumbnails"
-                    >
-                      <FaChevronRight className="h-4 w-4 md:rotate-90" />
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-
+            <div className="flex flex-col gap-6">
               <div className="relative flex-1 overflow-hidden rounded-4xl pt-0 px-2 pb-2 sm:rounded-[2.25rem] sm:px-4 sm:pb-4 lg:px-6 lg:pb-6">
                 <button
                   type="button"
@@ -2139,6 +2056,89 @@ const ProductDetails = () => {
                   </>
                 ) : null}
               </div>
+
+              {productMediaItems.length > 1 ? (
+                <div className="mx-auto flex items-center justify-center gap-3">
+                  {hasThumbnailPagination ? (
+                    <button
+                      type="button"
+                      data-no-scroll-top
+                      onClick={showPreviousThumbnailPage}
+                      disabled={!canShowPreviousThumbnailPage}
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label="Previous thumbnails"
+                    >
+                      <FaChevronLeft className="h-4 w-4" />
+                    </button>
+                  ) : null}
+
+                  <div className="overflow-hidden">
+                    <div className="flex items-center gap-3">
+                      {visibleThumbnailItems.map(({ mediaItem, index }) => (
+                        <button
+                          key={mediaItem.key}
+                          type="button"
+                          data-no-scroll-top
+                          onClick={() => setSelectedImage(index)}
+                          className={`aspect-square w-16 shrink-0 overflow-hidden rounded-2xl border bg-white p-2 transition-all hover:scale-95 active:scale-90 lg:w-18 ${
+                            selectedImage === index
+                              ? "border-2 border-black shadow-[0_10px_22px_rgba(0,0,0,0.08)]"
+                              : "border-black/10 hover:border-black/70"
+                          }`}
+                        >
+                          {mediaItem.type === "youtube" ? (
+                            <div className="relative h-full w-full overflow-hidden rounded-xl bg-black">
+                              <img
+                                src={mediaItem.thumbnailSrc}
+                                alt={mediaItem.alt}
+                                className="h-full w-full object-cover"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
+                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/92 shadow-lg ring-1 ring-black/5">
+                                  <FaYoutube className="h-4 w-4 text-red-600" />
+                                </span>
+                              </div>
+                            </div>
+                          ) : mediaItem.type === "video" ? (
+                            <div className="relative h-full w-full overflow-hidden rounded-xl bg-black">
+                              <video
+                                src={mediaItem.src}
+                                className="h-full w-full object-cover"
+                                muted
+                                preload="metadata"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 text-white">
+                                <span className="rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold text-black">
+                                  Video
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <ProductImage
+                              src={mediaItem.src}
+                              alt={mediaItem.alt}
+                              className="h-full w-full object-contain mix-blend-multiply"
+                            />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {hasThumbnailPagination ? (
+                    <button
+                      type="button"
+                      data-no-scroll-top
+                      onClick={showNextThumbnailPage}
+                      disabled={!canShowNextThumbnailPage}
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label="Next thumbnails"
+                    >
+                      <FaChevronRight className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -2157,60 +2157,97 @@ const ProductDetails = () => {
             </div>
             <nav
               aria-label="Breadcrumb"
-              className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400"
+              className="text-[14px] font-medium text-slate-500"
             >
-              <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <ol className="flex flex-wrap items-center gap-x-3">
                 <li>
                   <button
                     type="button"
                     data-no-scroll-top
-                    onClick={() => navigate("/")}
-                    className="hover:text-black transition-colors"
+                    onClick={() => {
+                      navigate("/");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="text-orange-500 hover:text-orange-600 hover:underline transition-colors"
                   >
                     Home
                   </button>
                 </li>
-                <li aria-hidden="true" className="text-gray-300">
+                {(() => {
+                  const catObj =
+                    product.category && typeof product.category === "object"
+                      ? product.category
+                      : null;
+                  const catId = catObj?._id || "";
+                  const catName = catObj?.name || "";
+                  const catType = catObj?.type || "";
+                  const pType = String(
+                    product.productType || "",
+                  ).trim();
+
+                  if (catId && catName) {
+                    return (
+                      <>
+                        <li aria-hidden="true" className="text-slate-300">
+                          /
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            data-no-scroll-top
+                            onClick={() => {
+                              navigate(`/shop?category=${catId}`);
+                              window.scrollTo({
+                                top: 0,
+                                behavior: "smooth",
+                              });
+                            }}
+                            className="text-orange-500 hover:text-orange-600 hover:underline transition-colors truncate max-w-[180px]"
+                          >
+                            {catName}
+                          </button>
+                        </li>
+                      </>
+                    );
+                  }
+                  if (
+                    pType &&
+                    pType.toLowerCase() !== "latest"
+                  ) {
+                    return (
+                      <>
+                        <li aria-hidden="true" className="text-slate-300">
+                          /
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            data-no-scroll-top
+                            onClick={() => {
+                              navigate(
+                                `/shop?type=${encodeURIComponent(pType)}`,
+                              );
+                              window.scrollTo({
+                                top: 0,
+                                behavior: "smooth",
+                              });
+                            }}
+                            className="text-orange-500 hover:text-orange-600 hover:underline transition-colors truncate max-w-[180px]"
+                          >
+                            {pType}
+                          </button>
+                        </li>
+                      </>
+                    );
+                  }
+                  return null;
+                })()}
+                <li aria-hidden="true" className="text-slate-300">
                   /
                 </li>
-                <li>
-                  <button
-                    type="button"
-                    data-no-scroll-top
-                    onClick={() => navigate("/shop")}
-                    className="hover:text-black transition-colors"
-                  >
-                    Shop
-                  </button>
+                <li className="text-slate-800 font-semibold truncate max-w-[200px]">
+                  {product.title}
                 </li>
-                {product.category ? (
-                  <>
-                    <li aria-hidden="true" className="text-gray-300">
-                      /
-                    </li>
-                    <li>
-                      {typeof product.category === "object" &&
-                      product.category?._id ? (
-                        <button
-                          type="button"
-                          data-no-scroll-top
-                          onClick={() =>
-                            navigate(`/shop?category=${product.category._id}`)
-                          }
-                          className="hover:text-black transition-colors"
-                        >
-                          {product.category?.name || "Category"}
-                        </button>
-                      ) : (
-                        <span className="text-gray-600">
-                          {typeof product.category === "object"
-                            ? product.category?.name || "Category"
-                            : product.category}
-                        </span>
-                      )}
-                    </li>
-                  </>
-                ) : null}
               </ol>
             </nav>
 

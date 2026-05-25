@@ -6,6 +6,7 @@ import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   FiArrowRight,
+  FiChevronDown,
   FiGrid,
   FiHeart,
   FiLogOut,
@@ -25,33 +26,34 @@ const baseUrl = import.meta.env.VITE_API_URL;
 const navItems = [
   { label: "Home", to: "/" },
   { label: "Shop", to: "/shop" },
-  { label: "Contact", to: "/contact" },
+  // { label: "Contact", to: "/contact" },
 ];
 const CATEGORY_CACHE_KEY = "publicNavbarCategories";
 const CATEGORY_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const readCachedCategories = () => {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return { categories: [], categoryTypes: [] };
 
   try {
     const raw = window.localStorage.getItem(CATEGORY_CACHE_KEY);
-    if (!raw) return [];
+    if (!raw) return { categories: [], categoryTypes: [] };
 
     const parsed = JSON.parse(raw);
     const timestamp = Number(parsed?.timestamp || 0);
-    const items = Array.isArray(parsed?.items) ? parsed.items : [];
+    const categories = Array.isArray(parsed?.categories) ? parsed.categories : [];
+    const categoryTypes = Array.isArray(parsed?.categoryTypes) ? parsed.categoryTypes : [];
 
     if (!timestamp || Date.now() - timestamp > CATEGORY_CACHE_TTL_MS) {
-      return [];
+      return { categories: [], categoryTypes: [] };
     }
 
-    return items;
+    return { categories, categoryTypes };
   } catch {
-    return [];
+    return { categories: [], categoryTypes: [] };
   }
 };
 
-const writeCachedCategories = (items = []) => {
+const writeCachedCategories = (categories = [], categoryTypes = []) => {
   if (typeof window === "undefined") return;
 
   try {
@@ -59,7 +61,8 @@ const writeCachedCategories = (items = []) => {
       CATEGORY_CACHE_KEY,
       JSON.stringify({
         timestamp: Date.now(),
-        items: Array.isArray(items) ? items : [],
+        categories,
+        categoryTypes,
       }),
     );
   } catch {
@@ -104,6 +107,9 @@ const Navbar = () => {
     (state) => state.wishlist.items?.length || 0,
   );
   const [categories, setCategories] = useState([]);
+  const [categoryTypes, setCategoryTypes] = useState([]);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [expandedMobileTypes, setExpandedMobileTypes] = useState({});
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -151,6 +157,39 @@ const Navbar = () => {
     [categories],
   );
 
+  const orderedCategoryTypes = useMemo(() => {
+    // "New arrival" (Latest) is ALWAYS first, regardless of whether any categories use it
+    const order = ["Latest"];
+
+    // Add backend-defined category types (excluding Latest) in their backend-sorted order
+    const backendTypeNames = categoryTypes.map((t) => t.name);
+    backendTypeNames.forEach((name) => {
+      if (name.toLowerCase() !== "latest") {
+        order.push(name);
+      }
+    });
+
+    // Add any types that exist in categories but are not defined in backend types
+    const uniqueTypesInCategories = Array.from(
+      new Set(visibleCategories.map((c) => c.type || "Latest"))
+    );
+    uniqueTypesInCategories.forEach((type) => {
+      if (
+        type.toLowerCase() !== "latest" &&
+        !order.some((o) => o.toLowerCase() === type.toLowerCase())
+      ) {
+        order.push(type);
+      }
+    });
+
+    return order;
+  }, [visibleCategories, categoryTypes]);
+
+  const getCategoryTypeLabel = (type) => {
+    if (type.toLowerCase() === "latest") return "New arrival";
+    return type;
+  };
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
@@ -184,16 +223,17 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    const cachedCategories = readCachedCategories();
-    if (cachedCategories.length > 0) {
+    const { categories: cachedCategories, categoryTypes: cachedTypes } = readCachedCategories();
+    if (cachedCategories && cachedCategories.length > 0) {
       setCategories(cachedCategories);
+      setCategoryTypes(cachedTypes || []);
       setLoading(false);
     }
 
     let active = true;
 
     const loadCategories = async () => {
-      if (cachedCategories.length === 0 && active) {
+      if ((!cachedCategories || cachedCategories.length === 0) && active) {
         setLoading(true);
       }
       try {
@@ -201,13 +241,18 @@ const Navbar = () => {
         const nextCategories = response.data?.success
           ? response.data.categories || []
           : [];
+        const nextTypes = response.data?.success
+          ? response.data.categoryTypes || []
+          : [];
         if (!active) return;
         setCategories(nextCategories);
-        writeCachedCategories(nextCategories);
+        setCategoryTypes(nextTypes);
+        writeCachedCategories(nextCategories, nextTypes);
       } catch (_error) {
-        if (!active && cachedCategories.length > 0) return;
-        if (active && cachedCategories.length === 0) {
+        if (!active && cachedCategories && cachedCategories.length > 0) return;
+        if (active && (!cachedCategories || cachedCategories.length === 0)) {
           setCategories([]);
+          setCategoryTypes([]);
         }
       } finally {
         if (active) {
@@ -618,90 +663,39 @@ const Navbar = () => {
           </div>
         </div>
 
-        <div className="hidden items-center gap-6 py-4 lg:flex">
-          <Link
-            to="/"
-            onClick={scrollToTop}
-            className="flex min-w-0 items-center"
-          >
-            {logo ? (
-              <img
-                src={logo}
-                alt={brandName}
-                className="h-10 w-auto max-w-37.5 object-contain sm:h-11 sm:max-w-42.5 lg:h-12 lg:max-w-45"
-              />
-            ) : (
-              <p
-                className="truncate text-xl font-bold tracking-tight"
-                style={{ color: accent }}
-              >
-                {brandLogoText}
-              </p>
-            )}
-          </Link>
-
-          <nav className="flex flex-1 items-center justify-center gap-8">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/"}
-                onClick={scrollToTop}
-                className={({ isActive }) =>
-                  `border-b-2 pb-1 text-sm font-semibold tracking-wide transition-colors ${
-                    isActive
-                      ? "border-slate-950 text-slate-950"
-                      : "border-transparent text-slate-600 hover:text-slate-950"
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex items-center justify-end gap-2">
-            <div
-              ref={desktopSearchWrapRef}
-              className="relative flex items-center"
+        <div className="hidden items-center justify-between gap-6 py-4 lg:flex">
+          {/* Logo */}
+          <div className="w-1/4 max-w-[250px] shrink-0">
+            <Link
+              to="/"
+              onClick={scrollToTop}
+              className="flex min-w-0 items-center"
             >
-              <button
-                type="button"
-                onClick={() => {
-                  setDesktopSearchOpen((prev) => !prev);
-                  setUserMenuOpen(false);
-                  setMobileSearchOpen(false);
-                  setMobileMenuOpen(false);
-                }}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
-                aria-label="Toggle search"
-                aria-expanded={desktopSearchOpen}
-              >
-                {desktopSearchOpen ? (
-                  <FiX className="h-5 w-5" />
-                ) : (
-                  <FiSearch className="h-5 w-5" />
-                )}
-              </button>
+              {logo ? (
+                <img
+                  src={logo}
+                  alt={brandName}
+                  className="h-10 w-auto max-w-37.5 object-contain sm:h-11 sm:max-w-42.5 lg:h-12 lg:max-w-45"
+                />
+              ) : (
+                <p
+                  className="truncate text-xl font-bold tracking-tight"
+                  style={{ color: accent }}
+                >
+                  {brandLogoText}
+                </p>
+              )}
+            </Link>
+          </div>
 
-              <AnimatePresence>
-                {desktopSearchOpen ? (
-                  <motion.div
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{
-                      opacity: 1,
-                      width: "min(11rem, calc(100vw - 22rem))",
-                    }}
-                    exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                    className="absolute right-[calc(100%+0.75rem)] top-1/2 z-11030 w-[min(48rem,calc(100vw-22rem))] max-w-3xl -translate-y-1/2"
-                  >
-                    {renderSearchBox({ className: "max-w-3xl" })}
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </div>
+          {/* Search Bar in Middle */}
+          <div className="flex-1 max-w-xl mx-auto">
+            {renderSearchBox({ className: "w-full" })}
+          </div>
 
+          {/* Icons on the Right */}
+          <div className="w-1/4 flex items-center justify-end gap-4 shrink-0">
+            {/* User Menu */}
             <div ref={userMenuRef} className="relative">
               <button
                 type="button"
@@ -710,7 +704,7 @@ const Navbar = () => {
                   setDesktopSearchOpen(false);
                   setShowSuggestions(false);
                 }}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition hover:bg-slate-100"
                 aria-haspopup="menu"
                 aria-expanded={userMenuOpen}
                 aria-label="User menu"
@@ -782,11 +776,12 @@ const Navbar = () => {
               </AnimatePresence>
             </div>
 
+            {/* Wishlist */}
             <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={handleWishlistClick}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition hover:bg-slate-100"
                 aria-label="Open wishlist"
               >
                 <FiHeart className="h-5 w-5" />
@@ -798,6 +793,7 @@ const Navbar = () => {
               ) : null}
             </div>
 
+            {/* Cart */}
             <div className="relative shrink-0">
               <button
                 type="button"
@@ -805,7 +801,7 @@ const Navbar = () => {
                   navigate("/cart");
                   scrollToTop();
                 }}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition hover:bg-slate-100"
                 aria-label="Open cart"
               >
                 <FiShoppingBag className="h-5 w-5" />
@@ -821,6 +817,130 @@ const Navbar = () => {
                 </span>
               ) : null}
             </div>
+          </div>
+        </div>
+
+        {/* Second row desktop */}
+        <div className="border-t border-slate-100 bg-white hidden lg:block">
+          <div className="site-shell py-3.5">
+            <nav className="flex items-center justify-center gap-8 flex-wrap">
+              {orderedCategoryTypes.map((type) => {
+                const typeLabel = getCategoryTypeLabel(type);
+                const isNewArrival = type.toLowerCase() === "latest";
+                const typeCategories = visibleCategories.filter(
+                  (c) => (c.type || "Latest").toLowerCase() === type.toLowerCase()
+                );
+                const showDropdown = !isNewArrival;
+                const isActive = isNewArrival
+                  ? location.pathname === "/"
+                  : new URLSearchParams(location.search).get("type")?.toLowerCase() === type.toLowerCase() ||
+                    typeCategories.some(
+                      (c) =>
+                        c._id ===
+                        new URLSearchParams(location.search).get("category"),
+                    );
+
+                return (
+                  <div
+                    key={type}
+                    className="relative group py-1"
+                    onMouseEnter={() => {
+                      if (showDropdown) {
+                        setActiveDropdown(type);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (showDropdown) {
+                        setActiveDropdown(null);
+                      }
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isNewArrival) {
+                          navigate("/");
+                          scrollToTop();
+                        } else {
+                          navigate(`/shop?type=${encodeURIComponent(type)}`);
+                          scrollToTop();
+                        }
+                      }}
+                      className={`flex items-center gap-1 text-[15px] font-bold tracking-wide transition-colors ${
+                        isActive
+                          ? "text-orange-600 border-b-2 border-orange-600 pb-0.5"
+                          : "text-slate-900 hover:text-orange-600"
+                      }`}
+                    >
+                      <span>{typeLabel}</span>
+                      {showDropdown && (
+                        <FiChevronDown className={`h-4 w-4 transition-transform duration-200 group-hover:rotate-180 ${
+                          isActive ? "text-orange-600" : "text-slate-900 group-hover:text-orange-600"
+                        }`} />
+                      )}
+                    </button>
+
+                    {showDropdown && (
+                      <AnimatePresence>
+                        {activeDropdown === type && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 8 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute left-1/2 -translate-x-1/2 top-full z-11020 mt-1 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+                          >
+                            <div className="flex flex-col gap-0.5">
+                              {typeCategories.length > 0 ? (
+                                typeCategories.map((category) => {
+                                  const isCatActive = new URLSearchParams(location.search).get("category") === category._id;
+                                  return (
+                                    <button
+                                      key={category._id}
+                                      type="button"
+                                      onClick={() => {
+                                        navigate(`/shop?category=${category._id}`);
+                                        scrollToTop();
+                                        setActiveDropdown(null);
+                                      }}
+                                      className={`w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold transition ${
+                                        isCatActive
+                                          ? "bg-orange-50 text-orange-600"
+                                          : "text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                                      }`}
+                                    >
+                                      {category.name}
+                                    </button>
+                                  );
+                                })
+                              ) : (
+                                <div className="px-4 py-3 text-center text-xs font-semibold text-slate-400">
+                                  No sub category available
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* <NavLink
+                to="/contact"
+                onClick={scrollToTop}
+                className={({ isActive }) =>
+                  `text-[15px] font-bold tracking-wide transition-colors ${
+                    isActive
+                      ? "text-orange-600 border-b-2 border-orange-600 pb-1"
+                      : "text-slate-900 hover:text-orange-600"
+                  }`
+                }
+              >
+                Contact
+              </NavLink> */}
+            </nav>
           </div>
         </div>
 
@@ -887,30 +1007,7 @@ const Navbar = () => {
                     <FiX className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 border-b border-slate-200 bg-slate-50 px-2 py-2">
-                  <button
-                    type="button"
-                    onClick={() => setMobileMenuTab("menu")}
-                    className={`h-11 rounded-2xl text-sm font-semibold tracking-wide transition ${
-                      mobileMenuTab === "menu"
-                        ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    Menu
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMobileMenuTab("categories")}
-                    className={`h-11 rounded-2xl text-sm font-semibold tracking-wide transition ${
-                      mobileMenuTab === "categories"
-                        ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    Categories
-                  </button>
-                </div>
+              
                 <div className="flex-1 overflow-y-auto px-4 py-5">
                   {mobileMenuTab === "categories" ? (
                     <div>
@@ -944,17 +1041,117 @@ const Navbar = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {navItems.map((item) => (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          onClick={handleMobileRouteClick}
-                          className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm"
-                        >
-                          <span>{item.label}</span>
-                          <FiArrowRight className="h-4 w-4 text-slate-400" />
-                        </Link>
-                      ))}
+                      {orderedCategoryTypes.map((type) => {
+                        const isExpanded = !!expandedMobileTypes[type];
+                        const typeLabel = getCategoryTypeLabel(type);
+                        const isNewArrivalMobile = type.toLowerCase() === "latest";
+                        const typeCategories = visibleCategories.filter(
+                          (c) => (c.type || "Latest").toLowerCase() === type.toLowerCase()
+                        );
+                        const isMobileActive = isNewArrivalMobile
+                          ? location.pathname === "/"
+                          : new URLSearchParams(location.search).get("type")?.toLowerCase() === type.toLowerCase() ||
+                            typeCategories.some(
+                              (c) =>
+                                c._id ===
+                                new URLSearchParams(location.search).get("category"),
+                            );
+
+                        return (
+                          <div key={type} className="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isNewArrivalMobile) {
+                                  navigate("/");
+                                  handleMobileRouteClick();
+                                } else {
+                                  setExpandedMobileTypes((prev) => ({
+                                    ...prev,
+                                    [type]: !prev[type],
+                                  }));
+                                }
+                              }}
+                              className={`flex w-full items-center justify-between px-4 py-3.5 text-left text-sm font-bold ${
+                                isMobileActive ? "text-orange-600" : "text-slate-900"
+                              }`}
+                            >
+                              <span>{typeLabel}</span>
+                              {isNewArrivalMobile ? (
+                                <FiArrowRight className={`h-4 w-4 ${
+                                  isMobileActive ? "text-orange-500" : "text-slate-500"
+                                }`} />
+                              ) : (
+                                <FiChevronDown
+                                  className={`h-4 w-4 transition-transform duration-200 ${
+                                    isExpanded ? "rotate-180" : ""
+                                  } ${
+                                    isMobileActive ? "text-orange-500" : "text-slate-500"
+                                  }`}
+                                />
+                              )}
+                            </button>
+
+                            {isExpanded && !isNewArrivalMobile && (
+                              <div className="bg-slate-50 border-t border-slate-100 px-4 py-2 flex flex-col gap-2">
+                                {typeCategories.length > 0 ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigate(`/shop?type=${encodeURIComponent(type)}`);
+                                        handleMobileRouteClick();
+                                      }}
+                                      className="w-full text-left py-2 text-xs font-bold text-slate-500 hover:text-orange-600 transition"
+                                    >
+                                      View All {typeLabel}
+                                    </button>
+                                    {typeCategories.map((category) => {
+                                      const isMobileCatActive = new URLSearchParams(location.search).get("category") === category._id;
+                                      return (
+                                        <button
+                                          key={category._id}
+                                          type="button"
+                                          onClick={() => {
+                                            navigate(`/shop?category=${category._id}`);
+                                            handleMobileRouteClick();
+                                          }}
+                                          className={`w-full text-left py-2 text-sm font-semibold transition ${
+                                            isMobileCatActive
+                                              ? "text-orange-600"
+                                              : "text-slate-700 hover:text-orange-600"
+                                          }`}
+                                        >
+                                          {category.name}
+                                        </button>
+                                      );
+                                    })}
+                                  </>
+                                ) : (
+                                  <div className="w-full text-left py-2 text-xs font-semibold text-slate-400">
+                                    No sub category available
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* <Link
+                        to="/contact"
+                        onClick={handleMobileRouteClick}
+                        className={`flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold shadow-sm ${
+                          location.pathname === "/contact"
+                            ? "text-orange-600"
+                            : "text-slate-900"
+                        }`}
+                      >
+                        <span>Contact</span>
+                        <FiArrowRight className={`h-4 w-4 ${
+                          location.pathname === "/contact" ? "text-orange-500" : "text-slate-400"
+                        }`} />
+                      </Link> */}
                     </div>
                   )}
                 </div>

@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
  import {
@@ -104,6 +104,29 @@ const ProductGrid = () => {
     price: true,
   });
   const { settings, loaded: settingsLoaded } = usePublicSettings();
+
+  const firstCategoryType = React.useMemo(() => {
+    const types = categories
+      .map((c) => c.type)
+      .filter(
+        (t) =>
+          t &&
+          t.toLowerCase() !== "latest" &&
+          t.toLowerCase() !== "package",
+      );
+    const uniqueTypes = Array.from(new Set(types));
+    return uniqueTypes[0] || null;
+  }, [categories]);
+  const activeCategory = categories.find(cat => cat._id === selectedCategory);
+  const activeCategoryType = activeCategory 
+    ? activeCategory.type 
+    : (selectedCategoryType !== "all" ? selectedCategoryType : null);
+
+  const getCategoryTypeDisplayName = (type) => {
+    if (!type) return "";
+    if (type.toLowerCase() === "latest") return "New arrival";
+    return type;
+  };
   const branding = React.useMemo(
     () => ({
       storeName: getSafeStoreName(settings?.website?.storeName),
@@ -352,7 +375,11 @@ const ProductGrid = () => {
     if (typeParam) {
       setSelectedCategoryType(typeParam);
     } else {
-      setSelectedCategoryType("all");
+      if (!categoryParam && firstCategoryType) {
+        setSelectedCategoryType(firstCategoryType);
+      } else {
+        setSelectedCategoryType("all");
+      }
     }
 
     if (searchParam) {
@@ -376,7 +403,17 @@ const ProductGrid = () => {
         setSortBy("featured");
       }
     }
-  }, [location.search]);
+  }, [location.search, firstCategoryType]);
+
+  // Auto-default to first category type when categories load and no query parameters are set
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const categoryParam = params.get("category");
+    const typeParam = params.get("type");
+    if (!categoryParam && !typeParam && firstCategoryType) {
+      setSelectedCategoryType(firstCategoryType);
+    }
+  }, [firstCategoryType, location.search]);
 
   // Fetch products and categories
   useEffect(() => {
@@ -884,12 +921,29 @@ const ProductGrid = () => {
 
   return (
     <section className="min-h-screen bg-[radial-gradient(circle_at_top,#ffffff_0%,#f6f8fb_40%,#edf2f7_100%)]">
-      <div className="site-shell py-10 sm:py-12 lg:py-14">
-        <div className="mx-auto max-w-3xl text-center">
+      <div className="site-shell py-6 sm:py-8 lg:py-10">
+        <div className="text-left">
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-500 mb-2">
+            <Link to="/" className="hover:text-black transition-colors">Home</Link>
+            {activeCategoryType && (
+              <>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-800 font-medium">
+                  {getCategoryTypeDisplayName(activeCategoryType)}
+                </span>
+              </>
+            )}
+            {selectedCategory !== "all" && categoryName && (
+              <>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-800 font-medium">{categoryName}</span>
+              </>
+            )}
+          </div>
           <h1 className="text-3xl font-black tracking-tight text-gray-950 sm:text-4xl lg:text-5xl">
-            {catalogTitle}
+            {activeCategoryType ? getCategoryTypeDisplayName(activeCategoryType) : catalogTitle}
           </h1>
-          <div className="mx-auto mt-5 h-px w-28 bg-gray-200" />
         </div>
       </div>
 
@@ -918,106 +972,168 @@ const ProductGrid = () => {
                 )}
               </div>
 
-              {/* Categories */}
-              <div className="mb-6 md:mb-8">
-                <button
-                  onClick={() => toggleFilterSection("categories")}
-                  className="w-full flex items-center justify-between text-left font-semibold text-black mb-4"
-                >
-                  <span>Categories</span>
-                  {expandedFilters.categories ? (
-                    <FiChevronUp />
-                  ) : (
-                    <FiChevronDown />
-                  )}
-                </button>
+              {activeCategoryType ? (
+                /* Locked Category Type Filter */
+                <div className="mb-6 md:mb-8">
+                  <button
+                    onClick={() => toggleFilterSection("categories")}
+                    className="w-full flex items-center justify-between text-left font-bold text-orange-600 mb-4"
+                  >
+                    <span>{getCategoryTypeDisplayName(activeCategoryType)}</span>
+                    {expandedFilters.categories ? (
+                      <FiChevronUp className="text-orange-600" />
+                    ) : (
+                      <FiChevronDown className="text-orange-600" />
+                    )}
+                  </button>
 
-                {expandedFilters.categories && (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        setSelectedCategory("all");
-                        navigate("/shop");
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        selectedCategory === "all"
-                          ? "bg-black text-white"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      All Categories
-                    </button>
-                    {visibleCategories.map((category) => (
+                  {expandedFilters.categories && (
+                    <div className="space-y-2">
                       <button
-                        key={category._id}
                         onClick={() => {
-                          setSelectedCategory(category._id);
-                          navigate(`/shop?category=${category._id}`);
+                          setSelectedCategory("all");
+                          setSelectedCategoryType(activeCategoryType);
+                          navigate(`/shop?type=${encodeURIComponent(activeCategoryType)}`);
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                          selectedCategory === category._id
-                            ? "bg-gray-900 text-white"
-                            : "text-gray-600 hover:bg-gray-100"
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors font-semibold ${
+                          selectedCategory === "all"
+                            ? "bg-orange-600 text-white font-bold"
+                            : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
                         }`}
                       >
-                        <span>{category.name}</span>
-                        {category.type && (
-                          <span className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded">
-                            {category.type}
-                          </span>
-                        )}
+                        All {getCategoryTypeDisplayName(activeCategoryType)}
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Category Types */}
-              <div className="mb-6 md:mb-8">
-                <button
-                  onClick={() => toggleFilterSection("types")}
-                  className="w-full flex items-center justify-between text-left font-semibold text-black mb-4"
-                >
-                  <span>Category Type</span>
-                  {expandedFilters.types ? <FiChevronUp /> : <FiChevronDown />}
-                </button>
-
-                {expandedFilters.types && (
-                  <div className="space-y-2">
+                      {categories
+                        .filter(
+                          (category) =>
+                            (category.type || "Latest").toLowerCase() ===
+                            activeCategoryType.toLowerCase()
+                        )
+                        .map((category) => (
+                          <button
+                            key={category._id}
+                            onClick={() => {
+                              setSelectedCategory(category._id);
+                              setSelectedCategoryType("all");
+                              navigate(`/shop?category=${category._id}`);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between font-semibold ${
+                              selectedCategory === category._id
+                                ? "bg-orange-50 text-orange-600 font-bold"
+                                : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
+                            }`}
+                          >
+                            <span>{category.name}</span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Default Generic Filters (if no category type selected) */
+                <>
+                  {/* Categories */}
+                  <div className="mb-6 md:mb-8">
                     <button
-                      onClick={() => setSelectedCategoryType("all")}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        selectedCategoryType === "all"
-                          ? "bg-black text-white"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
+                      onClick={() => toggleFilterSection("categories")}
+                      className="w-full flex items-center justify-between text-left font-semibold text-black mb-4"
                     >
-                      All Types
+                      <span>Categories</span>
+                      {expandedFilters.categories ? (
+                        <FiChevronUp />
+                      ) : (
+                        <FiChevronDown />
+                      )}
                     </button>
-                    {visibleCategoryTypes.length > 0 ? (
-                      visibleCategoryTypes.map((type) => (
+
+                    {expandedFilters.categories && (
+                      <div className="space-y-2">
                         <button
-                          key={type}
-                          onClick={() => setSelectedCategoryType(type)}
+                          onClick={() => {
+                            setSelectedCategory("all");
+                            navigate("/shop");
+                          }}
                           className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                            selectedCategoryType === type
-                              ? "bg-gray-900 text-white"
+                            selectedCategory === "all"
+                              ? "bg-black text-white"
                               : "text-gray-600 hover:bg-gray-100"
                           }`}
                         >
-                          {type}
+                          All Categories
                         </button>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500 italic px-3 py-2">
-                        {visibleCategories.length > 0
-                          ? "No category types defined"
-                          : "Loading categories..."}
+                        {visibleCategories.map((category) => (
+                          <button
+                            key={category._id}
+                            onClick={() => {
+                              setSelectedCategory(category._id);
+                              navigate(`/shop?category=${category._id}`);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
+                              selectedCategory === category._id
+                                ? "bg-gray-900 text-white"
+                                : "text-gray-600 hover:bg-gray-100"
+                            }`}
+                          >
+                            <span>{category.name}</span>
+                            {category.type && (
+                              <span className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded">
+                                {category.type}
+                              </span>
+                            )}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+
+                  {/* Category Types */}
+                  <div className="mb-6 md:mb-8">
+                    <button
+                      onClick={() => toggleFilterSection("types")}
+                      className="w-full flex items-center justify-between text-left font-semibold text-black mb-4"
+                    >
+                      <span>Category Type</span>
+                      {expandedFilters.types ? <FiChevronUp /> : <FiChevronDown />}
+                    </button>
+
+                    {expandedFilters.types && (
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => setSelectedCategoryType("all")}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                            selectedCategoryType === "all"
+                              ? "bg-black text-white"
+                              : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          All Types
+                        </button>
+                        {visibleCategoryTypes.length > 0 ? (
+                          visibleCategoryTypes.map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => setSelectedCategoryType(type)}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                                selectedCategoryType === type
+                                  ? "bg-gray-900 text-white"
+                                  : "text-gray-600 hover:bg-gray-100"
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-500 italic px-3 py-2">
+                            {visibleCategories.length > 0
+                              ? "No category types defined"
+                              : "Loading categories..."}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Price Range */}
               <div className="mb-6 md:mb-8">
@@ -1461,87 +1577,140 @@ const ProductGrid = () => {
 
               {/* Mobile filter content */}
               <div className="space-y-6">
-                <div>
-                  <h4 className="font-semibold text-black mb-3">Categories</h4>
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                    <button
-                      onClick={() => {
-                        setSelectedCategory("all");
-                        navigate("/shop");
-                        setShowMobileFilters(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg ${
-                        selectedCategory === "all"
-                          ? "bg-black text-white"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      All Categories
-                    </button>
-                    {visibleCategories.map((category) => (
+                {activeCategoryType ? (
+                  /* Mobile Locked Category Type Filter */
+                  <div>
+                    <h4 className="font-bold text-orange-600 mb-3">
+                      {getCategoryTypeDisplayName(activeCategoryType)}
+                    </h4>
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                       <button
-                        key={category._id}
                         onClick={() => {
-                          setSelectedCategory(category._id);
-                          navigate(`/shop?category=${category._id}`);
+                          setSelectedCategory("all");
+                          setSelectedCategoryType(activeCategoryType);
+                          navigate(`/shop?type=${encodeURIComponent(activeCategoryType)}`);
                           setShowMobileFilters(false);
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-lg ${
-                          selectedCategory === category._id
-                            ? "bg-gray-900 text-white"
-                            : "text-gray-600 hover:bg-gray-100"
+                        className={`w-full text-left px-3 py-2 rounded-lg font-semibold ${
+                          selectedCategory === "all"
+                            ? "bg-orange-600 text-white font-bold"
+                            : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
                         }`}
                       >
-                        {category.name}
+                        All {getCategoryTypeDisplayName(activeCategoryType)}
                       </button>
-                    ))}
+                      {categories
+                        .filter(
+                          (category) =>
+                            (category.type || "Latest").toLowerCase() ===
+                            activeCategoryType.toLowerCase()
+                        )
+                        .map((category) => (
+                          <button
+                            key={category._id}
+                            onClick={() => {
+                              setSelectedCategory(category._id);
+                              setSelectedCategoryType("all");
+                              navigate(`/shop?category=${category._id}`);
+                              setShowMobileFilters(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between font-semibold ${
+                              selectedCategory === category._id
+                                ? "bg-orange-50 text-orange-600 font-bold"
+                                : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
+                            }`}
+                          >
+                            <span>{category.name}</span>
+                          </button>
+                        ))}
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-black mb-3">
-                    Category Type
-                  </h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                    <button
-                      onClick={() => {
-                        setSelectedCategoryType("all");
-                        setShowMobileFilters(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg ${
-                        selectedCategoryType === "all"
-                          ? "bg-black text-white"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      All Types
-                    </button>
-                    {visibleCategoryTypes.length > 0 ? (
-                      visibleCategoryTypes.map((type) => (
+                ) : (
+                  /* Mobile Generic Filters (Fallback) */
+                  <>
+                    <div>
+                      <h4 className="font-semibold text-black mb-3">Categories</h4>
+                      <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                         <button
-                          key={type}
                           onClick={() => {
-                            setSelectedCategoryType(type);
+                            setSelectedCategory("all");
+                            navigate("/shop");
                             setShowMobileFilters(false);
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg ${
-                            selectedCategoryType === type
-                              ? "bg-gray-900 text-white"
+                            selectedCategory === "all"
+                              ? "bg-black text-white"
                               : "text-gray-600 hover:bg-gray-100"
                           }`}
                         >
-                          {type}
+                          All Categories
                         </button>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500 italic px-3 py-2">
-                        {categories.length > 0
-                          ? "No category types defined"
-                          : "Loading categories..."}
+                        {visibleCategories.map((category) => (
+                          <button
+                            key={category._id}
+                            onClick={() => {
+                              setSelectedCategory(category._id);
+                              navigate(`/shop?category=${category._id}`);
+                              setShowMobileFilters(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg ${
+                              selectedCategory === category._id
+                                ? "bg-gray-900 text-white"
+                                : "text-gray-600 hover:bg-gray-100"
+                            }`}
+                          >
+                            {category.name}
+                          </button>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-black mb-3">
+                        Category Type
+                      </h4>
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                        <button
+                          onClick={() => {
+                            setSelectedCategoryType("all");
+                            setShowMobileFilters(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg ${
+                            selectedCategoryType === "all"
+                              ? "bg-black text-white"
+                              : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          All Types
+                        </button>
+                        {visibleCategoryTypes.length > 0 ? (
+                          visibleCategoryTypes.map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => {
+                                setSelectedCategoryType(type);
+                                setShowMobileFilters(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg ${
+                                selectedCategoryType === type
+                                  ? "bg-gray-900 text-white"
+                                  : "text-gray-600 hover:bg-gray-100"
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-500 italic px-3 py-2">
+                            {categories.length > 0
+                              ? "No category types defined"
+                              : "Loading categories..."}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Price Range in Mobile */}
                 <div>

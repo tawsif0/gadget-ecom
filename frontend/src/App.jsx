@@ -160,7 +160,7 @@ const Home = lazy(() => import("./Home/pages/Home"));
 const MarketplaceHomeFloors = lazy(
   () => import("./Home/pages/MarketplaceHomeFloors"),
 );
-const Contact = lazy(() => import("./Home/pages/Contact"));
+// const Contact = lazy(() => import("./Home/pages/Contact"));
 const ProductDetails = lazy(() => import("./Home/subPages/ProductDetails"));
 const ProductGrid = lazy(() => import("./Home/subPages/ProductGrid"));
 const AddToCart = lazy(() => import("./Home/components/AddToCart"));
@@ -311,11 +311,11 @@ function PublicLayout() {
             <Route path="/product/:id" element={<ProductDetails />} />
 
             {/* Static pages */}
-            <Route path="/contact" element={<Contact />} />
+            {/* <Route path="/contact" element={<Contact />} />
             <Route
               path="/contact-us"
               element={<Navigate to="/contact" replace />}
-            />
+            /> */}
             <Route
               path="/store/:slug"
               element={<Navigate to="/shop" replace />}

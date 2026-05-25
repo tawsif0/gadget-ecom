@@ -1298,14 +1298,14 @@ exports.getProduct = async (req, res) => {
     }
 
     const product = await Product.findById(id)
-      .populate("category", "name")
+      .populate("category", "name type")
       .populate("vendor", PUBLIC_VENDOR_POPULATE_FIELDS)
       .populate({
         path: "groupedProducts",
         select:
           "title price salePrice priceType showStockToPublic images videos video youtubeVideoUrls youtubeVideoUrl category brand marketplaceType stock isActive publicationStatus approvalStatus vendor variantDefinitions",
         populate: [
-          { path: "category", select: "name" },
+          { path: "category", select: "name type" },
           { path: "vendor", select: PUBLIC_VENDOR_POPULATE_FIELDS },
         ],
       })

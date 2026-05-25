@@ -1,4 +1,5 @@
 const Category = require("../models/Category");
+const { CategoryType } = require("../models/CategoryType");
 const { uploadImageBuffer, deleteImage } = require("../config/cloudinary");
 const { clearResponseCacheByPrefix } = require("../middlewares/responseCache");
 
@@ -92,10 +93,16 @@ const getPublicCategories = async (req, res) => {
       .sort({ name: 1 })
       .lean();
 
+    const categoryTypes = await CategoryType.find()
+      .select("name createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+
     res.json({
       success: true,
       count: categories.length,
       categories,
+      categoryTypes,
     });
   } catch (error) {
     console.error("Get public categories error:", error);
