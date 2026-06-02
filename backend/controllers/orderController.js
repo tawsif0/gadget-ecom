@@ -538,6 +538,66 @@ const buildCourierHeaders = (courierConfig = {}) => {
   return headers;
 };
 
+const resolvePathaoAccessToken = async (courierConfig = {}) => {
+  const apiToken = String(courierConfig.apiToken || "").trim();
+  if (!apiToken) return "";
+
+  if (!apiToken.includes(":")) {
+    return apiToken;
+  }
+
+  const parts = apiToken.split(":");
+  let username = "";
+  let password = "";
+
+  if (parts.length >= 3) {
+    const lastPart = parts[parts.length - 1].trim();
+    if (/^\d+$/.test(lastPart)) {
+      username = parts[0].trim();
+      password = parts.slice(1, -1).join(":").trim();
+    } else {
+      username = parts[0].trim();
+      password = parts.slice(1).join(":").trim();
+    }
+  } else {
+    username = parts[0].trim();
+    password = parts[1].trim();
+  }
+
+  const clientId = String(courierConfig.apiKey || "").trim();
+  const clientSecret = String(courierConfig.apiSecret || "").trim();
+
+  try {
+    const tokenUrl = joinBaseUrlWithPath(
+      courierConfig.apiBaseUrl,
+      "/aladdin/api/v1/issue-token",
+    );
+
+    const response = await axios.post(
+      tokenUrl,
+      {
+        client_id: clientId,
+        client_secret: clientSecret,
+        username,
+        password,
+        grant_type: "password",
+      },
+      {
+        timeout: courierConfig.timeoutMs || 12000,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      },
+    );
+
+    return response.data?.access_token || "";
+  } catch (error) {
+    const apiErrorMsg = resolveCourierApiErrorMessage(error);
+    throw new Error(`Pathao token authentication failed: ${apiErrorMsg}`);
+  }
+};
+
 const resolveCourierApiErrorMessage = (error) => {
   const responseData = error?.response?.data;
 
@@ -771,6 +831,66 @@ const buildCourierConsignmentPayload = (order = {}, courierConfig = {}) => {
       cod_amount: collection.amountToCollect,
       note: String(order?.adminNotes || "").trim(),
       item_description: itemDescription,
+    };
+  }
+
+  if (providerName === "pathao") {
+    const invoice = String(
+      order?.orderNumber || generateFallbackConsignmentId(order),
+    ).trim();
+    const itemDescription = items
+      .map((item) =>
+        String(item?.product?.title || item?.title || "Product").trim(),
+      )
+      .filter(Boolean)
+      .join(", ");
+
+    let storeId = 0;
+    const apiTokenStr = String(courierConfig.apiToken || "").trim();
+    const tokenParts = apiTokenStr.split(":");
+    if (tokenParts.length >= 3) {
+      const lastPart = tokenParts[tokenParts.length - 1].trim();
+      if (/^\d+$/.test(lastPart)) {
+        storeId = parseInt(lastPart, 10);
+      }
+    }
+
+    if (!storeId) {
+      const labelPathClean = String(courierConfig.labelPath || "").trim();
+      if (/^\d+$/.test(labelPathClean)) {
+        storeId = parseInt(labelPathClean, 10);
+      }
+    }
+
+    const totalQuantity =
+      items.reduce((sum, item) => sum + Number(item?.quantity || 0), 0) || 1;
+
+    let cleanPhone = String(shipping?.phone || "").replace(/\D/g, "");
+    if (cleanPhone.startsWith("880")) {
+      cleanPhone = cleanPhone.slice(2);
+    }
+    if (!cleanPhone.startsWith("0") && cleanPhone.length === 10) {
+      cleanPhone = `0${cleanPhone}`;
+    }
+
+    let finalAddress = fullShippingAddress || String(shipping?.address || "").trim();
+    if (finalAddress.length < 10) {
+      finalAddress = `${finalAddress}, ${String(shipping?.city || "").trim()}, ${String(shipping?.district || "Bangladesh").trim()}`;
+    }
+
+    return {
+      store_id: storeId,
+      merchant_order_id: invoice,
+      recipient_name: customerName || "Customer",
+      recipient_phone: cleanPhone,
+      recipient_address: finalAddress,
+      delivery_type: 48,
+      item_type: 2,
+      special_instruction: String(order?.adminNotes || "").trim(),
+      item_quantity: totalQuantity,
+      item_weight: 0.5,
+      amount_to_collect: Math.round(collection.amountToCollect || 0),
+      item_description: itemDescription || "E-commerce order items",
     };
   }
 
@@ -4087,6 +4207,25 @@ exports.generateCourierConsignment = async (req, res) => {
       ? await getCourierSettingsByKey(requestedCourierKey)
       : await getPrimaryAdminCourierSettings();
 
+    if (courierConfig) {
+      const isPathao =
+        String(courierConfig.courierKey || "").toLowerCase() === "pathao" ||
+        String(courierConfig.providerName || "").toLowerCase() === "pathao";
+      if (isPathao && courierConfig.apiToken && courierConfig.apiToken.includes(":")) {
+        try {
+          const dynamicToken = await resolvePathaoAccessToken(courierConfig);
+          if (dynamicToken) {
+            courierConfig.apiToken = dynamicToken;
+          }
+        } catch (tokenError) {
+          return res.status(400).json({
+            success: false,
+            message: tokenError.message || "Pathao token authentication failed",
+          });
+        }
+      }
+    }
+
     if (
       !courierConfig ||
       !courierConfig.enabled ||
@@ -4105,6 +4244,17 @@ exports.generateCourierConsignment = async (req, res) => {
     const previousStatus = normalizeOrderStatus(order.orderStatus || "pending");
     const cancellationSettings = await getCancellationSettings();
     const payload = buildCourierConsignmentPayload(order, courierConfig);
+    const isPathao =
+      String(courierConfig?.courierKey || "").toLowerCase() === "pathao" ||
+      String(courierConfig?.providerName || "").toLowerCase() === "pathao";
+
+    if (isPathao && (!payload.store_id || payload.store_id === 0)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Pathao Store ID is missing or invalid. Put the numeric store ID in the Label path field, or append it to the API token as email:password:store_id.",
+      });
+    }
 
     let generatedCourier = null;
 
@@ -4230,6 +4380,25 @@ exports.syncCourierTracking = async (req, res) => {
     const courierConfig = courierSelectionKey
       ? await getCourierSettingsByKey(courierSelectionKey)
       : await getPrimaryAdminCourierSettings();
+
+    if (courierConfig) {
+      const isPathao =
+        String(courierConfig.courierKey || "").toLowerCase() === "pathao" ||
+        String(courierConfig.providerName || "").toLowerCase() === "pathao";
+      if (isPathao && courierConfig.apiToken && courierConfig.apiToken.includes(":")) {
+        try {
+          const dynamicToken = await resolvePathaoAccessToken(courierConfig);
+          if (dynamicToken) {
+            courierConfig.apiToken = dynamicToken;
+          }
+        } catch (tokenError) {
+          return res.status(400).json({
+            success: false,
+            message: tokenError.message || "Pathao token authentication failed",
+          });
+        }
+      }
+    }
 
     if (!courierConfig || !courierConfig.enabled || !courierConfig.apiBaseUrl) {
       return res.status(400).json({

@@ -8,10 +8,10 @@ import { fetchCategoryTypes } from "../store/categoryTypeSlice";
 const CategoryTypeSelect = ({
   value = "",
   onChange,
-  placeholder = "Select type",
+  placeholder = "Select category name",
   buttonClassName = "",
   includeAllOption = false,
-  allLabel = "All types",
+  allLabel = "All category names",
   showManageButton = true,
 }) => {
   const dispatch = useDispatch();
@@ -55,7 +55,7 @@ const CategoryTypeSelect = ({
         searchable={true}
         className="flex-1 min-w-0"
         buttonClassName={buttonClassName}
-        emptyLabel={loading ? "Loading..." : "No types found"}
+        emptyLabel={loading ? "Loading..." : "No category names found"}
       />
       {showManageButton ? (
         <>
@@ -63,8 +63,8 @@ const CategoryTypeSelect = ({
             type="button"
             onClick={() => setOpen(true)}
             className="inline-flex w-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-800 transition hover:border-black hover:bg-gray-50"
-            title="Manage types"
-            aria-label="Manage types"
+            title="Manage category names"
+            aria-label="Manage category names"
           >
             <FiSettings className="h-4 w-4" />
           </button>

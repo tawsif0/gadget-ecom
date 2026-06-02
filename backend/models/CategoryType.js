@@ -8,9 +8,9 @@ const normalizeTypeName = (value) =>
 const categoryTypeSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, "Type name is required"],
+    required: [true, "Category name is required"],
     trim: true,
-    maxlength: [60, "Type name cannot exceed 60 characters"],
+    maxlength: [60, "Category name cannot exceed 60 characters"],
   },
   normalizedName: {
     type: String,
@@ -38,7 +38,23 @@ categoryTypeSchema.pre("validate", function setNormalizedName(next) {
   next();
 });
 
+categoryTypeSchema.index({ normalizedName: 1 }, { unique: true });
+
 const CategoryType = mongoose.model("CategoryType", categoryTypeSchema);
 
-module.exports = { CategoryType, normalizeTypeName };
+const ensureLatestCategoryType = async () => {
+  const normalizedLatest = normalizeTypeName("Latest").toLowerCase();
+  const latest = await CategoryType.findOne({ normalizedName: normalizedLatest });
+  if (latest) {
+    if (latest.name !== "Latest") {
+      latest.name = "Latest";
+      await latest.save();
+    }
+    return latest;
+  }
+
+  return CategoryType.create({ name: "Latest" });
+};
+
+module.exports = { CategoryType, normalizeTypeName, ensureLatestCategoryType };
 

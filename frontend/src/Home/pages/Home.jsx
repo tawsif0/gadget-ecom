@@ -119,6 +119,7 @@ const Home = () => {
   const website = settings?.website || {};
   const [catalog, setCatalog] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [categoryTypes, setCategoryTypes] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
 
   useEffect(() => {
@@ -206,18 +207,25 @@ const Home = () => {
           timeout: 8000,
           params: { ts: Date.now() },
         });
-        const next = response.data?.success
+        const nextCategories = response.data?.success
           ? response.data.categories || []
+          : [];
+        const nextTypes = response.data?.success
+          ? response.data.categoryTypes || []
           : [];
         if (active) {
           setCategories(
-            next.filter(
+            nextCategories.filter(
               (category) => (category?.type || "").toLowerCase() !== "package",
             ),
           );
+          setCategoryTypes(nextTypes);
         }
       } catch {
-        if (active) setCategories([]);
+        if (active) {
+          setCategories([]);
+          setCategoryTypes([]);
+        }
       }
     };
 
@@ -295,61 +303,41 @@ const Home = () => {
     return String(resolved || "").trim();
   }, [latestCatalogCategory]);
 
-  const firstTypedCategoryForSlider = useMemo(() => {
-    const typed = categories.filter((category) =>
-      String(category?.type || "").trim(),
-    );
-    if (!typed.length) return null;
-
-    const normalizeType = (value) => String(value || "").trim().toLowerCase();
-    const types = Array.from(new Set(typed.map((c) => normalizeType(c?.type)).filter(Boolean)));
-    if (!types.length) return null;
-
-    // Prefer showing "Latest" categories on the landing page when available.
-    const preferredType =
-      types.find((type) => type === "latest") || types.sort()[0];
-
-    const candidates = typed.filter(
-      (category) => normalizeType(category?.type) === preferredType,
-    );
-    const firstCategory = candidates
-      .slice()
-      .sort((a, b) =>
-        String(a?.name || "").localeCompare(String(b?.name || "")),
-      )[0];
-
-    return firstCategory || null;
-  }, [categories]);
-
-  const sliderCategoryId = String(
-    firstTypedCategoryForSlider?._id || "",
-  ).trim();
-  const sliderCategoryName = String(
-    firstTypedCategoryForSlider?.name || "",
-  ).trim();
-  const sliderCategoryType = String(
-    firstTypedCategoryForSlider?.type || "",
-  ).trim();
-
-  const sliderProducts = useMemo(() => {
-    if (!sliderCategoryId || !Array.isArray(allProducts) || !allProducts.length)
+  const categoriesWithProducts = useMemo(() => {
+    if (
+      !Array.isArray(categories) ||
+      !categories.length ||
+      !Array.isArray(allProducts) ||
+      !allProducts.length
+    ) {
       return [];
+    }
+
     const getProductCategoryId = (product) => {
       if (!product?.category) return "";
       if (typeof product.category === "string")
         return String(product.category).trim();
       return String(product.category?._id || "").trim();
     };
-    const filtered = allProducts.filter(
-      (product) => getProductCategoryId(product) === sliderCategoryId,
-    );
-    const sorted = [...filtered].sort((a, b) => {
-      const aDate = Date.parse(a?.createdAt || a?.updatedAt || "") || 0;
-      const bDate = Date.parse(b?.createdAt || b?.updatedAt || "") || 0;
-      return bDate - aDate;
-    });
-    return sorted;
-  }, [allProducts, sliderCategoryId]);
+
+    return categories
+      .map((category) => {
+        const filtered = allProducts.filter(
+          (product) =>
+            getProductCategoryId(product) === String(category._id).trim(),
+        );
+        const sorted = [...filtered].sort((a, b) => {
+          const aDate = Date.parse(a?.createdAt || a?.updatedAt || "") || 0;
+          const bDate = Date.parse(b?.createdAt || b?.updatedAt || "") || 0;
+          return bDate - aDate;
+        });
+        return {
+          category,
+          products: sorted,
+        };
+      })
+      .filter((item) => item.products.length > 0);
+  }, [categories, allProducts]);
 
   const customSectionCategories = useMemo(() => {
     const hiddenTypes = new Set(["latest", "general", "package"]);
@@ -359,6 +347,30 @@ const Home = () => {
       return !hiddenTypes.has(type);
     });
   }, [categories]);
+
+  const orderedCategoryTypes = useMemo(() => {
+    const order = ["Latest"];
+    const backendTypeNames = categoryTypes.map((t) => t.name);
+    backendTypeNames.forEach((name) => {
+      if (name.toLowerCase() !== "latest") {
+        order.push(name);
+      }
+    });
+
+    const uniqueTypesInCategories = Array.from(
+      new Set(categories.map((c) => c.type || "Latest"))
+    );
+    uniqueTypesInCategories.forEach((type) => {
+      if (
+        type.toLowerCase() !== "latest" &&
+        !order.some((o) => o.toLowerCase() === type.toLowerCase())
+      ) {
+        order.push(type);
+      }
+    });
+
+    return order;
+  }, [categories, categoryTypes]);
 
   return (
     <>
@@ -411,29 +423,29 @@ const Home = () => {
 
         {/* Custom Category Grid */}
         <DeferredSection minHeightClassName="min-h-[520px]">
-          <CategoryTypeShowcaseSection categories={customSectionCategories} />
+          <CategoryTypeShowcaseSection categories={customSectionCategories} typeOrder={orderedCategoryTypes} />
         </DeferredSection>
 
-        {/* First Type Category Slider */}
-        <DeferredSection minHeightClassName="min-h-[640px]">
-          <PagedProductDotsSlider
-            title={sliderCategoryName || "Category Picks"}
-            subtitle="Exclusive Pricing | Premium Experience"
-            products={sliderProducts.slice(0, 16)}
-            viewMoreHref={
-              sliderProducts.length >= 16
-                ? sliderCategoryId
-                  ? `/shop?category=${encodeURIComponent(sliderCategoryId)}${
-                      sliderCategoryType
-                        ? `&type=${encodeURIComponent(sliderCategoryType)}`
+        {/* Dynamic Category Sliders */}
+        {categoriesWithProducts.map(({ category, products }) => (
+          <DeferredSection key={category._id} minHeightClassName="min-h-[640px]">
+            <PagedProductDotsSlider
+              title={category.name}
+              subtitle={`${category.type || "Exclusive"} | Premium Experience`}
+              products={products.slice(0, 16)}
+              viewMoreHref={
+                products.length >= 16
+                  ? `/shop?category=${encodeURIComponent(category._id)}${
+                      category.type
+                        ? `&type=${encodeURIComponent(category.type)}`
                         : ""
                     }`
-                  : "/shop"
-                : ""
-            }
-            pageSize={8}
-          />
-        </DeferredSection>
+                  : ""
+              }
+              pageSize={8}
+            />
+          </DeferredSection>
+        ))}
       </div>
     </>
   );

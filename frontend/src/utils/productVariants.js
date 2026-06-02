@@ -301,10 +301,14 @@ const findMatchingOption = (definition, selection = {}) => {
 
 export const getResolvedSelectedVariants = (product = {}, selectedVariants = []) => {
   const definitions = normalizeProductVariantDefinitions(product);
-  const requestedSelections = normalizeSelectedVariantsPayload(selectedVariants);
   if (!definitions.length) return [];
 
-  return requestedSelections
+  const requestedSelections = normalizeSelectedVariantsPayload(selectedVariants);
+  const finalSelections = requestedSelections.length > 0
+    ? requestedSelections
+    : normalizeSelectedVariantsPayload(getDefaultSelectedVariants(product));
+
+  return finalSelections
     .map((selection) => {
       const definition =
         definitions.find(
@@ -387,10 +391,14 @@ export const getProductPricingForSelectedVariants = (
     Number.isFinite(regularPrice) &&
     regularPrice > salePrice;
 
+  const resolvedSelections = selectedVariants && selectedVariants.length > 0
+    ? selectedVariants
+    : getResolvedSelectedVariants(product, []);
+
   const pricing = getEffectiveProductPricing({
     basePrice: hasSalePrice ? salePrice : regularPrice,
     baseComparePrice: hasSalePrice ? regularPrice : null,
-    selectedVariants,
+    selectedVariants: resolvedSelections,
   });
 
   return {

@@ -129,7 +129,9 @@ const TabContent = React.memo(
       case "notifications":
         return <NotificationsCenter user={user} onNavigate={onTabChange} />;
       case "create-category":
-        return user?.userType === "admin" ? <CreateCategory /> : null;
+        return user?.userType === "admin" ? <CreateCategory mode="category" /> : null;
+      case "create-sub-category":
+        return user?.userType === "admin" ? <CreateCategory mode="subcategory" /> : null;
       case "modify-category":
         return user?.userType === "admin" ? <ModifyCategory /> : null;
       case "create-banner":

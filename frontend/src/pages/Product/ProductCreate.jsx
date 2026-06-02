@@ -801,10 +801,10 @@ const ProductCreate = () => {
                     </label>
                   </div>
 
-                  {/* Category */}
+                  {/* Category Name */}
                   <div>
                     <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                      <FiTag className="mr-2" /> Category *
+                      <FiTag className="mr-2" /> Category Name *
                     </label>
                     <SearchableSelect
                       value={form.category}
@@ -816,15 +816,15 @@ const ProductCreate = () => {
                           value: "",
                           label:
                             categories.length === 0
-                              ? "No categories available"
-                              : "Select a category",
+                              ? "No sub categories available"
+                              : "Select a sub category",
                         },
                         ...categories.map((cat) => ({
                           value: cat._id,
-                          label: `${cat.name} (${String(cat?.type || "Latest").trim() || "Latest"})`,
+                          label: `${String(cat?.type || "Latest").trim() || "Latest"} > ${cat.name}`,
                         })),
                       ]}
-                      placeholder="Select a category"
+                      placeholder="Select a sub category"
                       searchable={false}
                       className="min-w-0"
                       buttonClassName={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${
@@ -834,7 +834,7 @@ const ProductCreate = () => {
                     />
                     {categories.length === 0 && (
                       <p className="text-sm text-yellow-600 mt-1">
-                        No categories found. Please create a category first.
+                        No sub categories found. Please create a category name and sub category first.
                       </p>
                     )}
                     {errors.category && (

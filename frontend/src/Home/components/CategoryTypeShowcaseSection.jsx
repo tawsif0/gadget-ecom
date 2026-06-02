@@ -43,7 +43,7 @@ const getFullCategoryImageUrl = (value) => {
     : `/uploads/categories/${resolvedPath}`;
 };
 
-const groupByType = (categories = []) => {
+const groupByType = (categories = [], typeOrder = []) => {
   const buckets = new Map();
   categories.forEach((category) => {
     const type = normalizeText(category?.type);
@@ -51,27 +51,46 @@ const groupByType = (categories = []) => {
     if (!buckets.has(type)) buckets.set(type, []);
     buckets.get(type).push(category);
   });
+
+  const typeOrderMap = new Map();
+  (typeOrder || []).forEach((type, index) => {
+    typeOrderMap.set(normalizeText(type).toLowerCase(), index);
+  });
+
   return Array.from(buckets.entries())
     .map(([type, items]) => ({
       type,
       items: items
         .slice()
-        .sort((a, b) => normalizeText(a?.name).localeCompare(normalizeText(b?.name))),
+        .sort((a, b) => {
+          const aTime = Date.parse(a?.createdAt || a?.updatedAt || "") || 0;
+          const bTime = Date.parse(b?.createdAt || b?.updatedAt || "") || 0;
+          return aTime - bTime; // Sort by creation time (ascending, oldest first)
+        }),
     }))
-    .sort((a, b) => a.type.localeCompare(b.type));
+    .sort((a, b) => {
+      const aNormal = normalizeText(a.type).toLowerCase();
+      const bNormal = normalizeText(b.type).toLowerCase();
+      const aIndex = typeOrderMap.has(aNormal) ? typeOrderMap.get(aNormal) : 9999;
+      const bIndex = typeOrderMap.has(bNormal) ? typeOrderMap.get(bNormal) : 9999;
+      if (aIndex !== bIndex) {
+        return aIndex - bIndex;
+      }
+      return aNormal.localeCompare(bNormal);
+    });
 };
 
-const CategoryTypeShowcaseSection = ({ categories = [] }) => {
+const CategoryTypeShowcaseSection = ({ categories = [], typeOrder = [] }) => {
   const navigate = useNavigate();
 
-  const grouped = useMemo(() => groupByType(categories), [categories]);
+  const grouped = useMemo(() => groupByType(categories, typeOrder), [categories, typeOrder]);
   if (!grouped.length) return null;
 
   return (
     <section className="bg-slate-50 py-16 md:py-20">
       <div className="site-shell space-y-14 md:space-y-20">
         {grouped.map((group) => {
-          const items = (group.items || []).slice(0, 3);
+          const items = (group.items || []).slice(0, 4);
           if (!items.length) return null;
 
           return (
@@ -80,7 +99,7 @@ const CategoryTypeShowcaseSection = ({ categories = [] }) => {
                 For {group.type}
               </h2>
 
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+              <div className="grid grid-cols-2 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
                 {items.map((category) => {
                   const id = normalizeText(category?._id || category?.id);
                   const name = normalizeText(category?.name) || "Category";
@@ -98,9 +117,9 @@ const CategoryTypeShowcaseSection = ({ categories = [] }) => {
                         }`;
                         navigate(href);
                       }}
-                      className="group text-left"
+                      className="group text-left cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100">
+                      <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100 rounded-[18px]">
                         {image ? (
                           <img
                             alt={name}
@@ -115,14 +134,14 @@ const CategoryTypeShowcaseSection = ({ categories = [] }) => {
                         <div className="absolute inset-0 bg-black/0 transition-all duration-500 group-hover:bg-black/30" />
 
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                          <span className="translate-y-8 bg-white px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-black opacity-0 shadow-lg transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 group-hover:bg-[var(--brand-theme-color)] group-hover:text-[var(--brand-button-text-color)]">
+                          <span className="translate-y-8 bg-white px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-black opacity-0 shadow-lg transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 group-hover:bg-[var(--brand-theme-color)] group-hover:text-[var(--brand-button-text-color)] rounded-full">
                             Shop
                           </span>
                         </div>
                       </div>
 
-                      <div className="pt-4">
-                        <p className="text-sm font-bold text-black">
+                      <div className="pt-4 pl-1">
+                        <p className="text-sm font-bold text-black group-hover:text-gray-700 transition-colors">
                           {name} <span className="ml-1">→</span>
                         </p>
                       </div>

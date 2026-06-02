@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
 import { fetchPublicSettings } from "../../utils/publicSettings";
 import { hasHtmlContent } from "../../utils/richText";
@@ -57,6 +57,7 @@ const createNotFoundPolicy = () => ({
 });
 
 const PolicyPage = () => {
+  const navigate = useNavigate();
   const { policyType } = useParams();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
@@ -95,13 +96,19 @@ const PolicyPage = () => {
   return (
     <section className="min-h-screen bg-white py-8 md:py-12 lg:py-16">
       <div className="site-container">
-        <Link
-          to="/"
+        <button
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate("/");
+            }
+          }}
           className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 hover:text-black"
         >
           <FiArrowLeft className="h-4 w-4" />
-          Back to home
-        </Link>
+          Go back
+        </button>
       </div>
 
       <div className="site-shell py-10 sm:py-12 lg:py-14">

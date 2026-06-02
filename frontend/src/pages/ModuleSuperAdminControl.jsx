@@ -706,7 +706,7 @@ const ModuleSuperAdminControl = () => {
             <div>
               <h2 className="text-lg font-semibold text-black">Revenue Analytics</h2>
               <p className="text-xs text-gray-500">
-                Filter by product, category, and category type.
+                Filter by product, category, and category name.
               </p>
             </div>
           </div>
@@ -782,7 +782,7 @@ const ModuleSuperAdminControl = () => {
               </select>
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-gray-600 mb-1 block">Category Type</span>
+              <span className="text-xs font-medium text-gray-600 mb-1 block">Category Name</span>
               <CategoryTypeSelect
                 value={analyticsFilters.categoryType}
                 onChange={(value) =>
@@ -806,7 +806,7 @@ const ModuleSuperAdminControl = () => {
               >
                 <option value="product">Product</option>
                 <option value="category">Category</option>
-                <option value="categoryType">Category Type</option>
+                <option value="categoryType">Category Name</option>
               </select>
             </label>
 

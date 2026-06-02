@@ -161,7 +161,7 @@ const Navbar = () => {
     // "New arrival" (Latest) is ALWAYS first, regardless of whether any categories use it
     const order = ["Latest"];
 
-    // Add backend-defined category types (excluding Latest) in their backend-sorted order
+    // Add backend-defined category names (excluding Latest) in their backend-sorted order
     const backendTypeNames = categoryTypes.map((t) => t.name);
     backendTypeNames.forEach((name) => {
       if (name.toLowerCase() !== "latest") {

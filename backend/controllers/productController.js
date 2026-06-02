@@ -12,7 +12,6 @@ const {
   normalizeVariantPriceMode,
 } = require("../utils/productVariants");
 const { uploadImageBuffer, deleteImage } = require("../config/cloudinary");
-const { isAdmin } = require("../utils/vendorUtils");
 const { clearResponseCacheByPrefix } = require("../middlewares/responseCache");
 const {
   assertVendorCanUploadProducts,
@@ -62,6 +61,8 @@ const getUploadedVideoFiles = (files) => {
 };
 
 const isVendorUser = () => false;
+const isAdmin = (user) =>
+  String(user?.userType || user?.role || "").trim().toLowerCase() === "admin";
 
 const PUBLIC_VENDOR_POPULATE_FIELDS =
   "storeName slug logo status storePrivacy vacationMode city country ratingAverage ratingCount openingHours";

@@ -118,7 +118,7 @@ const buildDiscountLabel = (pricing) => {
   }
 
   const percent = Math.round(((previous - current) / previous) * 100);
-  return percent > 0 ? `-${percent}%` : "";
+  return percent > 0 ? `${percent}% OFF` : "";
 };
 
 const getCardMetaLine = (product, metaLine) => {
@@ -320,7 +320,13 @@ const StorefrontProductCard = ({
 
         <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1 sm:gap-2">
           {discountLabel ? (
-            <span className="app-btn-primary inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] shadow-sm sm:px-3 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.12em] shadow-md sm:px-3 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]"
+              style={{
+                backgroundColor: "var(--brand-theme-color)",
+                color: "var(--brand-button-text-color)",
+              }}
+            >
               {discountLabel}
             </span>
           ) : null}

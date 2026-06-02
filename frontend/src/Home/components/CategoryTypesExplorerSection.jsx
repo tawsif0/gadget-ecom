@@ -92,7 +92,7 @@ const CategoryTypesExplorerSection = ({ categories = [] }) => {
         <div className="mb-10 flex items-end justify-between gap-6">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-              Category Types
+              Category Names
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-slate-600 md:text-base">
               Choose a type, then shop a category instantly.

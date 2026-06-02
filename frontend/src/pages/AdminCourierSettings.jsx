@@ -300,7 +300,7 @@ const AdminCourierSettings = () => {
                         event.target.value,
                       )
                     }
-                    placeholder="Label path"
+                    placeholder="Label path or Pathao store ID"
                     className={inputClass}
                   />
                 </div>

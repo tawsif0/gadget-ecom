@@ -74,6 +74,7 @@ const ADMIN_ALLOWED_TABS = new Set([
   "module-admin-users",
   "module-super-admin",
   "module-abandoned",
+  "create-sub-category",
 ]);
 
 const USER_ALLOWED_TABS = new Set([
@@ -96,6 +97,7 @@ const ADMIN_TAB_PERMISSION_MAP = {
   "create-product": "manageProducts",
   "modify-product": "manageProducts",
   "create-category": "manageProducts",
+  "create-sub-category": "manageProducts",
   "modify-category": "manageProducts",
   "module-brands": "manageProducts",
   "module-inventory": "manageProducts",

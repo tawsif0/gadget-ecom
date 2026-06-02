@@ -297,6 +297,31 @@ const findMatchingOption = (definition, selection = {}) => {
   );
 };
 
+const getDefaultSelectedVariants = (product = {}) => {
+  const definitions = normalizeVariantDefinitions(product);
+  if (!definitions.length) return [];
+
+  return definitions
+    .map((definition) => {
+      const firstOption = Array.isArray(definition.options)
+        ? definition.options[0]
+        : null;
+      if (!firstOption) return null;
+
+      return {
+        name: definition.name,
+        preset: definition.preset,
+        label: firstOption.label || firstOption.value,
+        value: firstOption.value || firstOption.label,
+        colorHex: definition.preset === "color" ? firstOption.colorHex || "" : "",
+        priceMode: firstOption.priceMode || "default",
+        price: firstOption.price ?? null,
+        comparePrice: firstOption.comparePrice ?? null,
+      };
+    })
+    .filter(Boolean);
+};
+
 const buildSelectedVariantSummary = (selectedVariants = []) =>
   normalizeSelectedVariantsPayload(selectedVariants)
     .filter((variant) => String(variant?.preset || "").toLowerCase() !== "color")
@@ -313,12 +338,9 @@ const normalizeSelectedVariantsForProduct = (product, selectedVariants = []) => 
     };
   }
 
-  const requestedSelections = normalizeSelectedVariantsPayload(selectedVariants);
+  let requestedSelections = normalizeSelectedVariantsPayload(selectedVariants);
   if (!requestedSelections.length) {
-    return {
-      selectedVariants: [],
-      variationLabel: "",
-    };
+    requestedSelections = normalizeSelectedVariantsPayload(getDefaultSelectedVariants(product));
   }
 
   const normalizedSelections = [];

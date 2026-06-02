@@ -169,6 +169,11 @@ const OrderTracking = ({
       return;
     }
 
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
     navigate("/");
   };
 
@@ -357,7 +362,7 @@ const OrderTracking = ({
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-900 hover:text-black"
               >
                 <FiChevronLeft className="w-4 h-4" />
-                Back to My Orders
+                Go back
               </button>
               <div className="mt-8 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-100 text-gray-500">
@@ -386,7 +391,7 @@ const OrderTracking = ({
               >
                 <FiChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                 <span className="font-medium">
-                  {isDashboard ? "Back to My Orders" : "Back to Home"}
+                  Go back
                 </span>
               </button>
 
@@ -439,7 +444,7 @@ const OrderTracking = ({
               className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-900 hover:text-black"
             >
               <FiChevronLeft className="w-4 h-4" />
-              Back to My Orders
+              Go back
             </button>
             <div className="mt-8">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-100 text-gray-500">
@@ -471,18 +476,11 @@ const OrderTracking = ({
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => navigate("/")}
+                onClick={handleBack}
                 className="px-6 py-3 bg-[#f47c20] text-white rounded-full font-bold shadow-lg shadow-[#f47c20]/20 transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
               >
-                <FiHome className="w-4 h-4" />
-                Back to Home
-              </button>
-              <button
-                onClick={() => navigate("/shop")}
-                className="px-6 py-3 border border-slate-200 rounded-full font-bold text-slate-700 transition-colors hover:border-[#f47c20] hover:text-[#f47c20] flex items-center justify-center gap-2"
-              >
-                <FiShoppingBag className="w-4 h-4" />
-                Continue Shopping
+                <FiChevronLeft className="w-4 h-4" />
+                Go back
               </button>
             </div>
           </div>
@@ -510,7 +508,7 @@ const OrderTracking = ({
               className="group mb-6 flex items-center gap-2 text-slate-600 transition-colors hover:text-[#f47c20]"
             >
               <FiChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              <span className="font-medium">Back to Home</span>
+              <span className="font-medium">Go back</span>
             </button>
 
             <div className="mb-8 text-center">
@@ -1094,12 +1092,6 @@ const OrderTracking = ({
 
               {/* Actions */}
               <div className="mt-6 space-y-3">
-                <button
-                  onClick={() => navigate("/shop")}
-                  className="w-full py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
-                >
-                  Continue Shopping
-                </button>
                 {canSubmitCancellation(cancellation) ? (
                   <button
                     onClick={() => setShowCancelModal(true)}
@@ -1110,9 +1102,9 @@ const OrderTracking = ({
                 ) : null}
                 <button
                   onClick={handleBack}
-                  className="w-full py-3 border border-gray-300 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  className="w-full py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
                 >
-                  {isDashboard ? "Back to My Orders" : "Back to Home"}
+                  Go back
                 </button>
               </div>
             </motion.div>

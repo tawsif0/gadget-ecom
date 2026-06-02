@@ -1126,10 +1126,10 @@ const CheckOut = () => {
             order.
           </p>
           <button
-            onClick={() => navigate("/shop")}
+            onClick={() => navigate(-1)}
             className="mt-6 inline-flex items-center rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-900"
           >
-            Go to Shop
+            Go back
           </button>
         </div>
       </section>
@@ -1140,11 +1140,11 @@ const CheckOut = () => {
     <section className="min-h-screen bg-[#f5f5f5] py-8 md:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <button
-          onClick={() => navigate("/cart")}
+          onClick={() => navigate(-1)}
           className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition hover:text-black"
         >
           <FiChevronLeft />
-          Back to cart
+          Go back
         </button>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(340px,0.85fr)]">

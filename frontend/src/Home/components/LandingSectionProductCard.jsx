@@ -119,7 +119,7 @@ const buildDiscountLabel = (pricing) => {
   }
 
   const percent = Math.round(((previous - current) / previous) * 100);
-  return percent > 0 ? `-${percent}%` : "";
+  return percent > 0 ? `${percent}% OFF` : "";
 };
 
 const formatPrice = (value) => {
@@ -417,13 +417,24 @@ const PopularCard = ({
     className="home-spotlight-card home-showcase-font group relative flex h-full min-h-[13rem] cursor-pointer flex-col overflow-hidden rounded-xl border border-white/6 bg-[#262722] transition duration-300 hover:-translate-y-[2px] hover:border-[#D4AF37]/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/40 sm:min-h-[14.25rem] md:min-h-[16.5rem] lg:min-h-[17.75rem]"
   >
     <div className="relative aspect-square overflow-hidden bg-black">
+      {discountLabel ? (
+        <span
+          className="absolute right-3 top-3 z-20 rounded-full px-2.5 py-1 text-[8px] font-extrabold uppercase tracking-wider shadow-md"
+          style={{
+            backgroundColor: "var(--brand-theme-color)",
+            color: "var(--brand-button-text-color)",
+          }}
+        >
+          {discountLabel}
+        </span>
+      ) : null}
       <IconButton
         label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
         onClick={toggleWishlist}
         disabled={wishlistLoading}
         className={`${getWishlistIconButtonClassName(
           isWishlisted,
-          "absolute right-3 top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full border transition sm:h-9 sm:w-9",
+          "absolute left-3 top-3 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full border transition sm:h-9 sm:w-9",
         )} disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <FiHeart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
@@ -441,11 +452,6 @@ const PopularCard = ({
           {sectionBadgeLabel ? (
             <span className="home-showcase-label rounded-full border border-white/14 bg-white/6 px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.22em] text-white/82 sm:text-[8px] sm:tracking-[0.28em]">
               {sectionBadgeLabel}
-            </span>
-          ) : null}
-          {discountLabel ? (
-            <span className="home-showcase-label rounded-full border border-white/14 bg-white/6 px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.22em] text-white sm:text-[8px] sm:tracking-[0.28em]">
-              {discountLabel}
             </span>
           ) : null}
         </div>
@@ -502,7 +508,13 @@ const HotDealCard = ({
   >
     <div className="relative mb-2.5 aspect-square overflow-hidden rounded-lg bg-[#F5F3ED] sm:mb-3">
       {discountLabel ? (
-        <span className="home-showcase-label absolute right-2 top-2 z-10 rounded-sm bg-[#1B1C18] px-1.5 py-0.5 text-[8px] font-bold text-white sm:text-[9px]">
+        <span
+          className="absolute right-2 top-2 z-10 rounded-sm px-1.5 py-0.5 text-[8px] font-extrabold sm:text-[9px]"
+          style={{
+            backgroundColor: "var(--brand-theme-color)",
+            color: "var(--brand-button-text-color)",
+          }}
+        >
           {discountLabel}
         </span>
       ) : null}
@@ -580,13 +592,24 @@ const FeaturedCard = ({
     className="home-showcase-font group flex h-full min-h-[13.5rem] cursor-pointer flex-col rounded-2xl bg-white p-2.5 transition duration-300 hover:-translate-y-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/35 sm:min-h-[15.25rem] sm:p-3 md:min-h-[17.75rem] lg:min-h-[19rem]"
   >
     <div className="relative aspect-[4/4.8] overflow-hidden rounded-[1rem] bg-[#F5F3ED] home-showcase-shadow sm:aspect-[4/5]">
+      {discountLabel ? (
+        <span
+          className="absolute right-3 top-3 z-10 rounded-full px-2.5 py-1 text-[8px] font-extrabold uppercase shadow-md"
+          style={{
+            backgroundColor: "var(--brand-theme-color)",
+            color: "var(--brand-button-text-color)",
+          }}
+        >
+          {discountLabel}
+        </span>
+      ) : null}
       <IconButton
         label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
         onClick={toggleWishlist}
         disabled={wishlistLoading}
         className={`${getWishlistIconButtonClassName(
           isWishlisted,
-          "absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border transition sm:h-9 sm:w-9",
+          "absolute left-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border transition sm:h-9 sm:w-9",
         )} disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <FiHeart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
@@ -652,6 +675,17 @@ const BestSellingCard = ({
       className="home-showcase-font group flex h-full min-h-[13rem] cursor-pointer flex-col text-left transition duration-300 hover:-translate-y-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/35 sm:min-h-[14.5rem] md:min-h-[16.25rem] lg:min-h-[17.5rem]"
     >
       <div className="home-showcase-shadow relative mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-white p-4 sm:mb-4 sm:p-6">
+        {discountLabel ? (
+          <span
+            className="absolute right-3 top-3 z-10 rounded-full px-2.5 py-1 text-[8px] font-extrabold uppercase shadow-md"
+            style={{
+              backgroundColor: "var(--brand-theme-color)",
+              color: "var(--brand-button-text-color)",
+            }}
+          >
+            {discountLabel}
+          </span>
+        ) : null}
         <ProductImage
           src={product?.images?.[0] || product?.image}
           alt={product?.title}
@@ -722,7 +756,18 @@ const LatestCard = ({
     className="home-showcase-font group flex h-full min-h-[13rem] cursor-pointer flex-col text-center transition duration-300 hover:-translate-y-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/35 sm:min-h-[14.5rem] md:min-h-[16.25rem] lg:min-h-[17.5rem]"
   >
     <div className="home-showcase-shadow relative mb-3 aspect-square overflow-hidden rounded-2xl bg-[#F5F3ED] sm:mb-4">
-      <div className="home-showcase-label absolute right-3 top-3 z-10 rounded-full bg-white/80 px-2 py-1 text-[7px] font-bold uppercase tracking-[0.18em] text-[#1B1C18] backdrop-blur-md sm:text-[8px] sm:tracking-[0.28em]">
+      {discountLabel ? (
+        <span
+          className="absolute right-3 top-3 z-10 rounded-full px-2.5 py-1 text-[8px] font-extrabold uppercase shadow-md"
+          style={{
+            backgroundColor: "var(--brand-theme-color)",
+            color: "var(--brand-button-text-color)",
+          }}
+        >
+          {discountLabel}
+        </span>
+      ) : null}
+      <div className="home-showcase-label absolute left-3 top-3 z-10 rounded-full bg-white/80 px-2 py-1 text-[7px] font-bold uppercase tracking-[0.18em] text-[#1B1C18] backdrop-blur-md sm:text-[8px] sm:tracking-[0.28em]">
         New
       </div>
       <ProductImage

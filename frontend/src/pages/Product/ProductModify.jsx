@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
@@ -42,7 +43,7 @@ import {
 } from "react-icons/fi";
 
 function ProductModify({ initialMode = "list" }) {
-  const { themeColor } = useThemeColors();
+  const { themeColor } = useThemeColors(); const navigate = useNavigate();
   const baseUrl = import.meta.env.VITE_API_URL;
   const VARIANT_PRICE_MODE_OPTIONS = [
     { value: "default", label: "Use Product Price" },
@@ -142,21 +143,21 @@ function ProductModify({ initialMode = "list" }) {
   const createVariantOption = (preset = "custom") =>
     preset === "color"
       ? {
-          label: "Black",
-          value: "#000000",
-          colorHex: "#000000",
-          priceMode: "default",
-          price: "",
-          comparePrice: "",
-        }
+        label: "Black",
+        value: "#000000",
+        colorHex: "#000000",
+        priceMode: "default",
+        price: "",
+        comparePrice: "",
+      }
       : {
-          label: "",
-          value: "",
-          colorHex: "",
-          priceMode: "default",
-          price: "",
-          comparePrice: "",
-        };
+        label: "",
+        value: "",
+        colorHex: "",
+        priceMode: "default",
+        price: "",
+        comparePrice: "",
+      };
 
   const createVariantDefinition = (preset = "custom") => ({
     preset,
@@ -178,17 +179,17 @@ function ProductModify({ initialMode = "list" }) {
         name: String(definition?.name || "").trim(),
         options: Array.isArray(definition?.options) && definition.options.length > 0
           ? definition.options.map((option) => ({
-              label: String(option?.label || option?.value || option?.colorHex || "").trim(),
-              value: String(option?.value || option?.label || option?.colorHex || "").trim(),
-              colorHex: String(option?.colorHex || "").trim(),
-              priceMode: String(option?.priceMode || "default").trim() || "default",
-              price:
-                option?.price === null || option?.price === undefined ? "" : String(option.price),
-              comparePrice:
-                option?.comparePrice === null || option?.comparePrice === undefined
-                  ? ""
-                  : String(option.comparePrice),
-            }))
+            label: String(option?.label || option?.value || option?.colorHex || "").trim(),
+            value: String(option?.value || option?.label || option?.colorHex || "").trim(),
+            colorHex: String(option?.colorHex || "").trim(),
+            priceMode: String(option?.priceMode || "default").trim() || "default",
+            price:
+              option?.price === null || option?.price === undefined ? "" : String(option.price),
+            comparePrice:
+              option?.comparePrice === null || option?.comparePrice === undefined
+                ? ""
+                : String(option.comparePrice),
+          }))
           : [createVariantOption(String(definition?.preset || "custom"))],
       }));
     }
@@ -222,44 +223,44 @@ function ProductModify({ initialMode = "list" }) {
         const name = String(definition?.name || "").trim() || defaultName;
         const options = Array.isArray(definition?.options)
           ? definition.options
-              .map((option) => {
-                const label = String(option?.label || option?.value || "").trim();
-                const value = String(option?.value || option?.label || "").trim();
-                const colorHex = String(option?.colorHex || "").trim().toLowerCase();
+            .map((option) => {
+              const label = String(option?.label || option?.value || "").trim();
+              const value = String(option?.value || option?.label || "").trim();
+              const colorHex = String(option?.colorHex || "").trim().toLowerCase();
 
-                if (preset === "color") {
-                  const resolvedHex =
-                    /^#[0-9a-fA-F]{6}$/.test(colorHex)
-                      ? colorHex
-                      : /^#[0-9a-fA-F]{6}$/.test(value)
-                        ? value.toLowerCase()
-                        : /^#[0-9a-fA-F]{6}$/.test(label)
-                          ? label.toLowerCase()
-                          : "";
-                  if (!resolvedHex) return null;
-                  return {
-                    label: label || resolvedHex,
-                    value: value || resolvedHex,
-                    colorHex: resolvedHex,
-                    priceMode:
-                      String(option?.priceMode || "default").trim() || "default",
-                    price: normalizeVariantPrice(option?.price),
-                    comparePrice: normalizeVariantPrice(option?.comparePrice),
-                  };
-                }
-
-                if (!label && !value) return null;
+              if (preset === "color") {
+                const resolvedHex =
+                  /^#[0-9a-fA-F]{6}$/.test(colorHex)
+                    ? colorHex
+                    : /^#[0-9a-fA-F]{6}$/.test(value)
+                      ? value.toLowerCase()
+                      : /^#[0-9a-fA-F]{6}$/.test(label)
+                        ? label.toLowerCase()
+                        : "";
+                if (!resolvedHex) return null;
                 return {
-                  label: label || value,
-                  value: value || label,
-                  colorHex: "",
+                  label: label || resolvedHex,
+                  value: value || resolvedHex,
+                  colorHex: resolvedHex,
                   priceMode:
                     String(option?.priceMode || "default").trim() || "default",
                   price: normalizeVariantPrice(option?.price),
                   comparePrice: normalizeVariantPrice(option?.comparePrice),
                 };
-              })
-              .filter(Boolean)
+              }
+
+              if (!label && !value) return null;
+              return {
+                label: label || value,
+                value: value || label,
+                colorHex: "",
+                priceMode:
+                  String(option?.priceMode || "default").trim() || "default",
+                price: normalizeVariantPrice(option?.price),
+                comparePrice: normalizeVariantPrice(option?.comparePrice),
+              };
+            })
+            .filter(Boolean)
           : [];
 
         if (!options.length) return null;
@@ -348,9 +349,9 @@ function ProductModify({ initialMode = "list" }) {
 
   const hasActiveListFilters = Boolean(
     String(listSearch || "").trim() ||
-      String(listCategoryType || "").trim() ||
-      String(listCategory || "").trim() ||
-      String(listPublicationStatus || "").trim(),
+    String(listCategoryType || "").trim() ||
+    String(listCategory || "").trim() ||
+    String(listPublicationStatus || "").trim(),
   );
 
   const clearListFilters = () => {
@@ -477,11 +478,11 @@ function ProductModify({ initialMode = "list" }) {
             const previousPrice = usesProductPrice
               ? basePreviousPrice
               : pricing.priceMode === "compare" &&
-                  pricing.comparePrice !== null &&
-                  pricing.comparePrice > pricing.price &&
-                  baseCurrentPrice !== null
+                pricing.comparePrice !== null &&
+                pricing.comparePrice > pricing.price &&
+                baseCurrentPrice !== null
                 ? Number(basePreviousPrice ?? baseCurrentPrice) +
-                  Number(pricing.comparePrice || 0)
+                Number(pricing.comparePrice || 0)
                 : basePreviousPrice !== null && currentPrice !== null
                   ? basePreviousPrice + Number(pricing.price || 0)
                   : null;
@@ -639,8 +640,10 @@ function ProductModify({ initialMode = "list" }) {
       setCategories(categoriesData);
       // Initial filtered categories for "General" type
       filterCategoriesByType("General", categoriesData);
+      return categoriesData;
     } catch (err) {
       toast.error("Failed to load category options");
+      return [];
     }
   };
 
@@ -678,13 +681,21 @@ function ProductModify({ initialMode = "list" }) {
       return;
     }
 
-    fetchProducts();
-    fetchCategories();
+    const init = async () => {
+      const cats = await fetchCategories();
+      await fetchProducts();
 
-    if (initialMode === "create") {
-      setShowForm(true);
-      setEditingId(null);
-    }
+      const targetEditId = localStorage.getItem("editProductId");
+      if (targetEditId) {
+        localStorage.removeItem("editProductId");
+        startEditing(targetEditId, cats);
+      } else if (initialMode === "create") {
+        setShowForm(true);
+        setEditingId(null);
+      }
+    };
+
+    init();
 
     const handleProductCreated = () => {
       fetchProducts();
@@ -722,8 +733,8 @@ function ProductModify({ initialMode = "list" }) {
     } catch (err) {
       toast.error(
         err.response?.data?.message ||
-          err.message ||
-          "Failed to delete product",
+        err.message ||
+        "Failed to delete product",
         { id: toastId },
       );
     } finally {
@@ -815,7 +826,7 @@ function ProductModify({ initialMode = "list" }) {
     setShowForm(true);
   };
 
-  const startEditing = async (id) => {
+  const startEditing = async (id, categoriesList = null) => {
     setLoading(true);
     try {
       const response = await axios.get(`${baseUrl}/products/${id}`, {
@@ -845,7 +856,7 @@ function ProductModify({ initialMode = "list" }) {
             : "",
         publicationStatus:
           String(productData.publicationStatus || "draft").trim().toLowerCase() ===
-          "published"
+            "published"
             ? "published"
             : "draft",
         category: productData.category?._id || productData.category || "",
@@ -862,24 +873,24 @@ function ProductModify({ initialMode = "list" }) {
             : "",
         lowStockThreshold:
           productData.lowStockThreshold !== undefined &&
-          productData.lowStockThreshold !== null
+            productData.lowStockThreshold !== null
             ? String(productData.lowStockThreshold)
             : "5",
         allowBackorder: Boolean(productData.allowBackorder),
         deliveryMinDays:
           productData.deliveryMinDays !== undefined &&
-          productData.deliveryMinDays !== null
+            productData.deliveryMinDays !== null
             ? String(productData.deliveryMinDays)
             : "2",
         deliveryMaxDays:
           productData.deliveryMaxDays !== undefined &&
-          productData.deliveryMaxDays !== null
+            productData.deliveryMaxDays !== null
             ? String(productData.deliveryMaxDays)
             : "5",
         downloadUrl: productData.downloadUrl || "",
         serviceDurationDays:
           productData.serviceDurationDays !== undefined &&
-          productData.serviceDurationDays !== null
+            productData.serviceDurationDays !== null
             ? String(productData.serviceDurationDays)
             : "",
         variationsJson: JSON.stringify(productData.variations || [], null, 2),
@@ -899,17 +910,17 @@ function ProductModify({ initialMode = "list" }) {
           : "monthly",
         recurringIntervalCount:
           productData.recurringIntervalCount !== undefined &&
-          productData.recurringIntervalCount !== null
+            productData.recurringIntervalCount !== null
             ? String(productData.recurringIntervalCount)
             : "1",
         recurringTotalCycles:
           productData.recurringTotalCycles !== undefined &&
-          productData.recurringTotalCycles !== null
+            productData.recurringTotalCycles !== null
             ? String(productData.recurringTotalCycles)
             : "0",
         recurringTrialDays:
           productData.recurringTrialDays !== undefined &&
-          productData.recurringTrialDays !== null
+            productData.recurringTrialDays !== null
             ? String(productData.recurringTrialDays)
             : "0",
         weight: productData.weight || "",
@@ -969,7 +980,8 @@ function ProductModify({ initialMode = "list" }) {
       setShowForm(true);
 
       // Filter categories based on product type
-      filterCategoriesByType(productData.productType || "General");
+      const activeCats = categoriesList && categoriesList.length > 0 ? categoriesList : categories;
+      filterCategoriesByType(productData.productType || "General", activeCats);
     } catch (err) {
       toast.error("Failed to load product data");
     } finally {
@@ -1336,7 +1348,7 @@ function ProductModify({ initialMode = "list" }) {
 
     const currentStatus =
       String(product?.publicationStatus || "draft").trim().toLowerCase() ===
-      "published"
+        "published"
         ? "published"
         : "draft";
     const nextStatus = currentStatus === "published" ? "draft" : "published";
@@ -1366,10 +1378,10 @@ function ProductModify({ initialMode = "list" }) {
         prev.map((entry) =>
           String(entry?._id || "") === productId
             ? {
-                ...entry,
-                ...updatedProduct,
-                publicationStatus: updatedProduct.publicationStatus || nextStatus,
-              }
+              ...entry,
+              ...updatedProduct,
+              publicationStatus: updatedProduct.publicationStatus || nextStatus,
+            }
             : entry,
         ),
       );
@@ -1378,7 +1390,7 @@ function ProductModify({ initialMode = "list" }) {
           ...prev,
           publicationStatus:
             String(updatedProduct.publicationStatus || nextStatus).trim().toLowerCase() ===
-            "published"
+              "published"
               ? "published"
               : "draft",
         }));
@@ -1386,7 +1398,7 @@ function ProductModify({ initialMode = "list" }) {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          `Failed to ${nextStatus === "published" ? "publish" : "save draft"}`,
+        `Failed to ${nextStatus === "published" ? "publish" : "save draft"}`,
         { id: toastId },
       );
     } finally {
@@ -1428,43 +1440,43 @@ function ProductModify({ initialMode = "list" }) {
             options:
               Array.isArray(definition.options) && definition.options.length > 0
                 ? definition.options.map((option) =>
-                    preset === "color"
-                      ? {
-                          label: option?.label || option?.value || "Black",
-                          value:
-                            option?.value && /^#[0-9a-fA-F]{6}$/.test(String(option.value))
-                              ? String(option.value).toLowerCase()
-                              : "#000000",
-                          colorHex:
-                            option?.colorHex &&
-                            /^#[0-9a-fA-F]{6}$/.test(String(option.colorHex))
-                              ? String(option.colorHex).toLowerCase()
-                              : "#000000",
-                          priceMode: String(option?.priceMode || "default").trim() || "default",
-                          price:
-                            option?.price === null || option?.price === undefined
-                              ? ""
-                              : String(option.price),
-                          comparePrice:
-                            option?.comparePrice === null || option?.comparePrice === undefined
-                              ? ""
-                              : String(option.comparePrice),
-                        }
-                      : {
-                          label: option?.label || option?.value || "",
-                          value: option?.value || option?.label || "",
-                          colorHex: "",
-                          priceMode: String(option?.priceMode || "default").trim() || "default",
-                          price:
-                            option?.price === null || option?.price === undefined
-                              ? ""
-                              : String(option.price),
-                          comparePrice:
-                            option?.comparePrice === null || option?.comparePrice === undefined
-                              ? ""
-                              : String(option.comparePrice),
-                        },
-                  )
+                  preset === "color"
+                    ? {
+                      label: option?.label || option?.value || "Black",
+                      value:
+                        option?.value && /^#[0-9a-fA-F]{6}$/.test(String(option.value))
+                          ? String(option.value).toLowerCase()
+                          : "#000000",
+                      colorHex:
+                        option?.colorHex &&
+                          /^#[0-9a-fA-F]{6}$/.test(String(option.colorHex))
+                          ? String(option.colorHex).toLowerCase()
+                          : "#000000",
+                      priceMode: String(option?.priceMode || "default").trim() || "default",
+                      price:
+                        option?.price === null || option?.price === undefined
+                          ? ""
+                          : String(option.price),
+                      comparePrice:
+                        option?.comparePrice === null || option?.comparePrice === undefined
+                          ? ""
+                          : String(option.comparePrice),
+                    }
+                    : {
+                      label: option?.label || option?.value || "",
+                      value: option?.value || option?.label || "",
+                      colorHex: "",
+                      priceMode: String(option?.priceMode || "default").trim() || "default",
+                      price:
+                        option?.price === null || option?.price === undefined
+                          ? ""
+                          : String(option.price),
+                      comparePrice:
+                        option?.comparePrice === null || option?.comparePrice === undefined
+                          ? ""
+                          : String(option.comparePrice),
+                    },
+                )
                 : [createVariantOption(preset)],
           };
         }
@@ -1482,9 +1494,9 @@ function ProductModify({ initialMode = "list" }) {
       prev.map((definition, index) =>
         index === definitionIndex
           ? {
-              ...definition,
-              options: [...(definition.options || []), createVariantOption(definition.preset)],
-            }
+            ...definition,
+            options: [...(definition.options || []), createVariantOption(definition.preset)],
+          }
           : definition,
       ),
     );
@@ -1878,9 +1890,8 @@ function ProductModify({ initialMode = "list" }) {
                         onChange={handleChange}
                         onBlur={() => validateField("title", form.title)}
                         placeholder="Enter product title"
-                        className={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${
-                          errors.title ? "border-red-500" : "border-gray-300"
-                        } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
+                        className={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${errors.title ? "border-red-500" : "border-gray-300"
+                          } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
                       />
                       {errors.title && (
                         <motion.p
@@ -1939,9 +1950,33 @@ function ProductModify({ initialMode = "list" }) {
                       </div>
 
                       {form.priceType === "single" && (
+                        <div>
+                          <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            Price (Tk) *
+                          </label>
+                          <input
+                            type="number"
+                            name="price"
+                            value={form.price}
+                            onChange={handleChange}
+                            onBlur={() => validateField("price", form.price)}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            className={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${errors.price ? "border-red-500" : "border-gray-300"
+                              } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
+                          />
+                          {errors.price && (
+                            <p className="text-sm text-red-500 mt-1">{errors.price}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {form.priceType === "best" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <div>
                             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                              Price (Tk) *
+                              Previous Price (Tk) *
                             </label>
                             <input
                               type="number"
@@ -1952,62 +1987,35 @@ function ProductModify({ initialMode = "list" }) {
                               placeholder="0.00"
                               step="0.01"
                               min="0"
-                              className={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${
-                                errors.price ? "border-red-500" : "border-gray-300"
-                              } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
+                              className={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${errors.price ? "border-red-500" : "border-gray-300"
+                                } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
                             />
                             {errors.price && (
                               <p className="text-sm text-red-500 mt-1">{errors.price}</p>
                             )}
                           </div>
-                        )}
-
-                      {form.priceType === "best" && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                            <div>
-                              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                                Previous Price (Tk) *
-                              </label>
-                              <input
-                                type="number"
-                                name="price"
-                                value={form.price}
-                                onChange={handleChange}
-                                onBlur={() => validateField("price", form.price)}
-                                placeholder="0.00"
-                                step="0.01"
-                                min="0"
-                                className={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${
-                                  errors.price ? "border-red-500" : "border-gray-300"
+                          <div>
+                            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                              New Price (Tk) *
+                            </label>
+                            <input
+                              type="number"
+                              name="salePrice"
+                              value={form.salePrice}
+                              onChange={handleChange}
+                              onBlur={() => validateField("salePrice", form.salePrice)}
+                              placeholder="0.00"
+                              step="0.01"
+                              min="0"
+                              className={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${errors.salePrice ? "border-red-500" : "border-gray-300"
                                 } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
-                              />
-                              {errors.price && (
-                                <p className="text-sm text-red-500 mt-1">{errors.price}</p>
-                              )}
-                            </div>
-                            <div>
-                              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                                New Price (Tk) *
-                              </label>
-                              <input
-                                type="number"
-                                name="salePrice"
-                                value={form.salePrice}
-                                onChange={handleChange}
-                                onBlur={() => validateField("salePrice", form.salePrice)}
-                                placeholder="0.00"
-                                step="0.01"
-                                min="0"
-                                className={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${
-                                  errors.salePrice ? "border-red-500" : "border-gray-300"
-                                } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
-                              />
-                              {errors.salePrice && (
-                                <p className="text-sm text-red-500 mt-1">{errors.salePrice}</p>
-                              )}
-                            </div>
+                            />
+                            {errors.salePrice && (
+                              <p className="text-sm text-red-500 mt-1">{errors.salePrice}</p>
+                            )}
                           </div>
-                        )}
+                        </div>
+                      )}
 
                       <div>
                         <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
@@ -2037,10 +2045,10 @@ function ProductModify({ initialMode = "list" }) {
                                 form.priceType === "tba"
                                   ? 0
                                   : Number(
-                                      form.priceType === "best"
-                                        ? form.salePrice || form.price || 0
-                                        : form.price || 0,
-                                    );
+                                    form.priceType === "best"
+                                      ? form.salePrice || form.price || 0
+                                      : form.price || 0,
+                                  );
                               const cost = Number(form.costing || 0);
                               return `${(sellPrice - cost).toFixed(2)} Tk`;
                             })()}
@@ -2054,10 +2062,10 @@ function ProductModify({ initialMode = "list" }) {
                                 form.priceType === "tba"
                                   ? 0
                                   : Number(
-                                      form.priceType === "best"
-                                        ? form.salePrice || form.price || 0
-                                        : form.price || 0,
-                                    );
+                                    form.priceType === "best"
+                                      ? form.salePrice || form.price || 0
+                                      : form.price || 0,
+                                  );
                               if (sellPrice <= 0) return "0.0%";
                               const cost = Number(form.costing || 0);
                               return `${(((sellPrice - cost) / sellPrice) * 100).toFixed(1)}%`;
@@ -2067,11 +2075,11 @@ function ProductModify({ initialMode = "list" }) {
                       </div>
 
                       {form.priceType === "tba" && (
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700">
-                            This product will show <span className="font-semibold">TBA</span>{" "}
-                            instead of price and cannot be purchased until price type changes.
-                          </div>
-                        )}
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700">
+                          This product will show <span className="font-semibold">TBA</span>{" "}
+                          instead of price and cannot be purchased until price type changes.
+                        </div>
+                      )}
                     </div>
 
                     {/* Product Type */}
@@ -2119,9 +2127,8 @@ function ProductModify({ initialMode = "list" }) {
                         placeholder="Select a category"
                         searchable={false}
                         className="min-w-0"
-                        buttonClassName={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${
-                          errors.category ? "border-red-500" : "border-gray-300"
-                        } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
+                        buttonClassName={`w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border ${errors.category ? "border-red-500" : "border-gray-300"
+                          } focus:outline-none focus:ring-1 focus:border-gray-500 transition-all text-sm md:text-base`}
                         menuClassName="rounded-xl"
                       />
                       {filteredCategories.length === 0 && (
@@ -2267,90 +2274,90 @@ function ProductModify({ initialMode = "list" }) {
                     )}
 
                     {form.marketplaceType === "digital" ? (
-                    <div className="rounded-lg border border-gray-200 p-4 space-y-3">
-                      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          name="isRecurring"
-                          checked={Boolean(form.isRecurring)}
-                          onChange={handleChange}
-                          disabled={form.priceType === "tba"}
-                          style={{ accentColor: themeColor }}
-                        />
-                        Enable recurring subscription billing
-                      </label>
-                      <p className="text-xs text-gray-500">
-                        Recurring billing is available only for digital products.
-                      </p>
+                      <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+                        <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            name="isRecurring"
+                            checked={Boolean(form.isRecurring)}
+                            onChange={handleChange}
+                            disabled={form.priceType === "tba"}
+                            style={{ accentColor: themeColor }}
+                          />
+                          Enable recurring subscription billing
+                        </label>
+                        <p className="text-xs text-gray-500">
+                          Recurring billing is available only for digital products.
+                        </p>
 
-                      {Boolean(form.isRecurring) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Billing Interval
-                            </label>
-                            <SearchableSelect
-                              value={form.recurringInterval}
-                              onChange={(value) =>
-                                handleChange({ target: { name: "recurringInterval", value } })
-                              }
-                              options={[
-                                { value: "weekly", label: "Weekly" },
-                                { value: "monthly", label: "Monthly" },
-                                { value: "quarterly", label: "Quarterly" },
-                                { value: "yearly", label: "Yearly" },
-                              ]}
-                              placeholder="Billing Interval"
-                              searchable={false}
-                              className="min-w-0"
-                              buttonClassName="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 text-sm"
-                              menuClassName="rounded-xl"
-                            />
+                        {Boolean(form.isRecurring) && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Billing Interval
+                              </label>
+                              <SearchableSelect
+                                value={form.recurringInterval}
+                                onChange={(value) =>
+                                  handleChange({ target: { name: "recurringInterval", value } })
+                                }
+                                options={[
+                                  { value: "weekly", label: "Weekly" },
+                                  { value: "monthly", label: "Monthly" },
+                                  { value: "quarterly", label: "Quarterly" },
+                                  { value: "yearly", label: "Yearly" },
+                                ]}
+                                placeholder="Billing Interval"
+                                searchable={false}
+                                className="min-w-0"
+                                buttonClassName="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 text-sm"
+                                menuClassName="rounded-xl"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Interval Count
+                              </label>
+                              <input
+                                type="number"
+                                name="recurringIntervalCount"
+                                value={form.recurringIntervalCount}
+                                onChange={handleChange}
+                                min="1"
+                                max="24"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Renewal Cycles
+                              </label>
+                              <input
+                                type="number"
+                                name="recurringTotalCycles"
+                                value={form.recurringTotalCycles}
+                                onChange={handleChange}
+                                min="0"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 text-sm"
+                              />
+                              <p className="text-[11px] text-gray-500 mt-1">0 = Unlimited</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Trial Days
+                              </label>
+                              <input
+                                type="number"
+                                name="recurringTrialDays"
+                                value={form.recurringTrialDays}
+                                onChange={handleChange}
+                                min="0"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 text-sm"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Interval Count
-                            </label>
-                            <input
-                              type="number"
-                              name="recurringIntervalCount"
-                              value={form.recurringIntervalCount}
-                              onChange={handleChange}
-                              min="1"
-                              max="24"
-                              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Renewal Cycles
-                            </label>
-                            <input
-                              type="number"
-                              name="recurringTotalCycles"
-                              value={form.recurringTotalCycles}
-                              onChange={handleChange}
-                              min="0"
-                              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 text-sm"
-                            />
-                            <p className="text-[11px] text-gray-500 mt-1">0 = Unlimited</p>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Trial Days
-                            </label>
-                            <input
-                              type="number"
-                              name="recurringTrialDays"
-                              value={form.recurringTrialDays}
-                              onChange={handleChange}
-                              min="0"
-                              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:border-gray-500 text-sm"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
                     ) : null}
 
                     {/* Physical Details */}
@@ -2555,9 +2562,9 @@ function ProductModify({ initialMode = "list" }) {
                           >
                             <FiUpload /> Upload Main Image
                           </label>
-                      <p className="text-xs text-gray-500 mt-2">
-                        JPG, PNG, WebP, GIF (auto-optimized on upload)
-                      </p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            JPG, PNG, WebP, GIF (auto-optimized on upload)
+                          </p>
                         </>
                       )}
                     </div>
@@ -2583,11 +2590,10 @@ function ProductModify({ initialMode = "list" }) {
                       />
                       <label
                         htmlFor="gallery-upload"
-                        className={`inline-flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg cursor-pointer text-sm md:text-base ${
-                          currentGalleryImages.length + galleryPreviews.length >= 4
+                        className={`inline-flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg cursor-pointer text-sm md:text-base ${currentGalleryImages.length + galleryPreviews.length >= 4
                             ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                             : "bg-gray-900 text-white hover:bg-gray-800"
-                        }`}
+                          }`}
                       >
                         <FiUpload /> Add Gallery Images
                       </label>
@@ -3080,11 +3086,10 @@ function ProductModify({ initialMode = "list" }) {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={isSubmitting}
-                    className={`w-full py-2 md:py-3 px-3 md:px-4 rounded-lg font-medium text-white ${
-                      isSubmitting
+                    className={`w-full py-2 md:py-3 px-3 md:px-4 rounded-lg font-medium text-white ${isSubmitting
                         ? "bg-gray-600 cursor-not-allowed"
                         : "bg-gray-900 hover:bg-gray-800"
-                    } transition-all shadow-sm md:shadow-md flex items-center justify-center text-sm md:text-base`}
+                      } transition-all shadow-sm md:shadow-md flex items-center justify-center text-sm md:text-base`}
                   >
                     {isSubmitting ? (
                       <>
@@ -3297,124 +3302,123 @@ function ProductModify({ initialMode = "list" }) {
                         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
                           <div className="flex-1">
                             {(() => {
-                          const variantPricingGroups = getVariantPricingGroups(product);
-                          const basePricing = getBaseProductPricingSummary(product);
-                          const hasColorVariantGroup = variantPricingGroups.some(
-                            (group) => String(group?.preset || "").trim().toLowerCase() === "color",
-                          );
-                          return (
-                            <>
-                            <div className="flex items-center gap-2 mb-2">
-                              <h2 className="text-lg md:text-xl font-semibold text-gray-900 line-clamp-1">
-                                {product.title}
-                              </h2>
-                              <span
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.16em] ${
-                                  String(product.publicationStatus || "draft").toLowerCase() ===
-                                  "published"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-100 text-amber-800"
-                                }`}
-                              >
-                                {String(product.publicationStatus || "draft")}
-                              </span>
-                            </div>
-                            <p className="text-gray-600 text-xs md:text-sm mb-3 line-clamp-2">
-                              {stripHtml(product.description)}
-                            </p>
-
-                            <div className="flex flex-wrap gap-1 md:gap-2 mb-3">
-                              <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                                {product.category?.name || "Uncategorized"}
-                              </span>
-                              <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded">
-                                {product.productType || "General"}
-                              </span>
-                              <span className="bg-gray-900 text-white text-xs px-2 py-1 rounded capitalize">
-                                {product.marketplaceType || "simple"}
-                              </span>
-                            </div>
-
-                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-                                Product Price
-                              </span>
-                              {renderBaseProductPriceBadge(basePricing)}
-                            </div>
-
-                            {variantPricingGroups.length ? (
-                              <div className="mb-3 space-y-2">
-                                {variantPricingGroups.map((group) => (
-                                  <div key={group.name} className="flex flex-wrap items-center gap-2 text-xs">
-                                    <span className="font-semibold uppercase tracking-[0.18em] text-gray-500">
-                                      {group.name}
+                              const variantPricingGroups = getVariantPricingGroups(product);
+                              const basePricing = getBaseProductPricingSummary(product);
+                              const hasColorVariantGroup = variantPricingGroups.some(
+                                (group) => String(group?.preset || "").trim().toLowerCase() === "color",
+                              );
+                              return (
+                                <>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h2 className="text-lg md:text-xl font-semibold text-gray-900 line-clamp-1">
+                                      {product.title}
+                                    </h2>
+                                    <span
+                                      className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.16em] ${String(product.publicationStatus || "draft").toLowerCase() ===
+                                          "published"
+                                          ? "bg-emerald-100 text-emerald-700"
+                                          : "bg-amber-100 text-amber-800"
+                                        }`}
+                                    >
+                                      {String(product.publicationStatus || "draft")}
                                     </span>
-                                    {group.options.map((option) => (
-                                      <span
-                                        key={`${group.name}-${option.label}-${option.colorHex || option.currentPrice}`}
-                                        className="inline-flex flex-wrap items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1"
-                                      >
-                                        {String(group?.preset || "").trim().toLowerCase() === "color" &&
-                                        option.colorHex ? (
-                                          <span
-                                            className="h-3.5 w-3.5 rounded-full border border-black/10"
-                                            style={{ backgroundColor: option.colorHex }}
-                                            title={option.label}
-                                          />
-                                        ) : (
-                                          <span className="font-medium text-gray-700">
-                                            {option.label}
+                                  </div>
+                                  <p className="text-gray-600 text-xs md:text-sm mb-3 line-clamp-2">
+                                    {stripHtml(product.description)}
+                                  </p>
+
+                                  <div className="flex flex-wrap gap-1 md:gap-2 mb-3">
+                                    <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
+                                      {product.category?.name || "Uncategorized"}
+                                    </span>
+                                    <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded">
+                                      {product.productType || "General"}
+                                    </span>
+                                    <span className="bg-gray-900 text-white text-xs px-2 py-1 rounded capitalize">
+                                      {product.marketplaceType || "simple"}
+                                    </span>
+                                  </div>
+
+                                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                                      Product Price
+                                    </span>
+                                    {renderBaseProductPriceBadge(basePricing)}
+                                  </div>
+
+                                  {variantPricingGroups.length ? (
+                                    <div className="mb-3 space-y-2">
+                                      {variantPricingGroups.map((group) => (
+                                        <div key={group.name} className="flex flex-wrap items-center gap-2 text-xs">
+                                          <span className="font-semibold uppercase tracking-[0.18em] text-gray-500">
+                                            {group.name}
+                                          </span>
+                                          {group.options.map((option) => (
+                                            <span
+                                              key={`${group.name}-${option.label}-${option.colorHex || option.currentPrice}`}
+                                              className="inline-flex flex-wrap items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1"
+                                            >
+                                              {String(group?.preset || "").trim().toLowerCase() === "color" &&
+                                                option.colorHex ? (
+                                                <span
+                                                  className="h-3.5 w-3.5 rounded-full border border-black/10"
+                                                  style={{ backgroundColor: option.colorHex }}
+                                                  title={option.label}
+                                                />
+                                              ) : (
+                                                <span className="font-medium text-gray-700">
+                                                  {option.label}
+                                                </span>
+                                              )}
+                                              {option.isTba ? (
+                                                <span className="font-semibold text-gray-900">TBA</span>
+                                              ) : option.showPrice && option.previousPrice !== null ? (
+                                                <>
+                                                  <span className="text-gray-400 line-through">
+                                                    {option.previousPrice.toFixed(2)} Tk
+                                                  </span>
+                                                  <span className="font-semibold text-gray-900">
+                                                    {option.currentPrice.toFixed(2)} Tk
+                                                  </span>
+                                                </>
+                                              ) : option.showPrice ? (
+                                                <span className="font-semibold text-gray-900">
+                                                  {option.currentPrice.toFixed(2)} Tk
+                                                </span>
+                                              ) : option.usesProductPrice ? (
+                                                <span className="text-[11px] font-medium text-gray-500">
+                                                  No extra charge needed
+                                                </span>
+                                              ) : null}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : null}
+
+                                  {/* Colors Preview */}
+                                  {!hasColorVariantGroup && product.colors && product.colors.length > 0 && (
+                                    <div className="mb-2 flex items-center gap-1">
+                                      <div className="flex gap-1">
+                                        {product.colors
+                                          .slice(0, 3)
+                                          .map((color, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="w-3 h-3 md:w-4 md:h-4 rounded-full border border-gray-300"
+                                              style={{ backgroundColor: color }}
+                                              title={color}
+                                            />
+                                          ))}
+                                        {product.colors.length > 3 && (
+                                          <span className="text-xs text-gray-500">
+                                            +{product.colors.length - 3} more
                                           </span>
                                         )}
-                                        {option.isTba ? (
-                                          <span className="font-semibold text-gray-900">TBA</span>
-                                        ) : option.showPrice && option.previousPrice !== null ? (
-                                          <>
-                                            <span className="text-gray-400 line-through">
-                                              {option.previousPrice.toFixed(2)} Tk
-                                            </span>
-                                            <span className="font-semibold text-gray-900">
-                                              {option.currentPrice.toFixed(2)} Tk
-                                            </span>
-                                          </>
-                                        ) : option.showPrice ? (
-                                          <span className="font-semibold text-gray-900">
-                                            {option.currentPrice.toFixed(2)} Tk
-                                          </span>
-                                        ) : option.usesProductPrice ? (
-                                          <span className="text-[11px] font-medium text-gray-500">
-                                            No extra charge needed
-                                          </span>
-                                        ) : null}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : null}
-
-                            {/* Colors Preview */}
-                            {!hasColorVariantGroup && product.colors && product.colors.length > 0 && (
-                              <div className="mb-2 flex items-center gap-1">
-                                <div className="flex gap-1">
-                                  {product.colors
-                                    .slice(0, 3)
-                                    .map((color, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="w-3 h-3 md:w-4 md:h-4 rounded-full border border-gray-300"
-                                        style={{ backgroundColor: color }}
-                                        title={color}
-                                      />
-                                    ))}
-                                  {product.colors.length > 3 && (
-                                    <span className="text-xs text-gray-500">
-                                      +{product.colors.length - 3} more
-                                    </span>
+                                      </div>
+                                    </div>
                                   )}
-                                </div>
-                              </div>
-                            )}
                                 </>
                               );
                             })()}
@@ -3432,13 +3436,12 @@ function ProductModify({ initialMode = "list" }) {
                             <button
                               onClick={() => handleTogglePublication(product)}
                               disabled={publishingId === product._id}
-                              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 ${
-                                String(product.publicationStatus || "draft")
+                              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 ${String(product.publicationStatus || "draft")
                                   .trim()
                                   .toLowerCase() === "published"
                                   ? "text-amber-700 bg-amber-50 hover:bg-amber-100"
                                   : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-                              }`}
+                                }`}
                               title={
                                 String(product.publicationStatus || "draft")
                                   .trim()
@@ -3452,8 +3455,8 @@ function ProductModify({ initialMode = "list" }) {
                                 {publishingId === product._id
                                   ? "Saving..."
                                   : String(product.publicationStatus || "draft")
-                                        .trim()
-                                        .toLowerCase() === "published"
+                                    .trim()
+                                    .toLowerCase() === "published"
                                     ? "Draft"
                                     : "Publish"}
                               </span>

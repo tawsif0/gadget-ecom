@@ -398,7 +398,7 @@ const AdminCoupons = () => {
       form.targetCategories.length === 0 &&
       form.targetProducts.length === 0
     ) {
-      toast.error("Select at least one category type, category, or product");
+      toast.error("Select at least one category name, sub category, or product");
       return false;
     }
 
@@ -517,7 +517,7 @@ const AdminCoupons = () => {
       Array.isArray(coupon?.targetCategoryTypes) &&
       coupon.targetCategoryTypes.length > 0
     ) {
-      parts.push(`${coupon.targetCategoryTypes.length} category type(s)`);
+      parts.push(`${coupon.targetCategoryTypes.length} category name(s)`);
     }
     if (
       Array.isArray(coupon?.targetCategories) &&
@@ -973,14 +973,14 @@ const AdminCoupons = () => {
                           </h2>
                           <p className="mt-1 text-sm leading-6 text-slate-500">
                             Build the coupon chain step by step. Start from
-                            category type, activate category names when needed,
-                            then activate products under the chosen categories.
+                            category name, activate sub categories when needed,
+                            then activate products under the chosen sub categories.
                           </p>
                         </div>
                         <div className="mt-4 space-y-4">
                           <SelectionPanel
-                            title="Category Type"
-                            description="Choose one or more catalog type groups."
+                            title="Category Name"
+                            description="Choose one or more top-level category names."
                             items={filteredCategoryTypes}
                             selectedValues={form.targetCategoryTypes}
                             onToggle={(value) =>
@@ -996,8 +996,8 @@ const AdminCoupons = () => {
                             }
                             searchValue={categoryTypeSearch}
                             onSearchChange={setCategoryTypeSearch}
-                            searchPlaceholder="Search category type"
-                            emptyText="No category types found."
+                            searchPlaceholder="Search category name"
+                            emptyText="No category names found."
                             getKey={(item) => item}
                             renderContent={(item, checked) => (
                               <div className="min-w-0">
@@ -1031,11 +1031,11 @@ const AdminCoupons = () => {
                             <div className="flex flex-col items-start gap-3">
                               <div>
                                 <p className="text-sm font-semibold text-slate-950">
-                                  Category Name Layer
+                                  Sub Category Layer
                                 </p>
                                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                                  After selecting category type, activate this
-                                  layer to choose the matching category names
+                                  After selecting a category name, activate this
+                                  layer to choose the matching sub categories
                                   only.
                                 </p>
                               </div>
@@ -1059,16 +1059,16 @@ const AdminCoupons = () => {
                                 className={`${neutralInlineToggleClass(categoryNamesEnabled)} disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400`}
                               >
                                 {categoryNamesEnabled
-                                  ? "Category Names Active"
-                                  : "Activate Category Names"}
+                                  ? "Sub Categories Active"
+                                  : "Activate Sub Categories"}
                               </button>
                             </div>
                           </div>
 
                           {categoryNamesEnabled ? (
                             <SelectionPanel
-                              title="Category Name"
-                              description="Only names from the selected category type appear here."
+                              title="Sub Category"
+                              description="Only sub categories from the selected category name appear here."
                               items={filteredCategories}
                               selectedValues={form.targetCategories}
                               onToggle={(value) =>
@@ -1083,8 +1083,8 @@ const AdminCoupons = () => {
                               }
                               searchValue={categorySearch}
                               onSearchChange={setCategorySearch}
-                              searchPlaceholder="Search category name"
-                              emptyText="Select a category type first to load category names."
+                              searchPlaceholder="Search sub category"
+                              emptyText="Select a category name first to load sub categories."
                               getKey={(item) => String(item?._id || "")}
                               renderContent={(item, checked) => (
                                 <div className="min-w-0">
@@ -1125,7 +1125,7 @@ const AdminCoupons = () => {
                                   <p className="mt-1 text-xs leading-5 text-slate-500">
                                     Activate products when you want the coupon
                                     to focus on selected products from the
-                                    chosen category names.
+                                    chosen sub categories.
                                   </p>
                                 </div>
                                 <button
@@ -1156,7 +1156,7 @@ const AdminCoupons = () => {
                           {productsEnabled ? (
                             <SelectionPanel
                               title="Products"
-                              description="Only products from the selected category names appear here."
+                              description="Only products from the selected sub categories appear here."
                               items={filteredProducts}
                               selectedValues={form.targetProducts}
                               onToggle={(value) =>
@@ -1171,7 +1171,7 @@ const AdminCoupons = () => {
                               searchValue={productSearch}
                               onSearchChange={setProductSearch}
                               searchPlaceholder="Search products"
-                              emptyText="Select category names first to load matching products."
+                              emptyText="Select sub categories first to load matching products."
                               getKey={(item) => String(item?._id || "")}
 	                              renderContent={(item, checked) => {
 	                                const imageUrl = toImageUrl(item?.images?.[0]);

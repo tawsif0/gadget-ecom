@@ -37,6 +37,11 @@ export const getProductPricingDisplay = (product) => {
     };
   }
 
+  const hasVariants = product?.variantDefinitions && product.variantDefinitions.length > 0;
+  if (hasVariants) {
+    return getProductCardPricingDisplay(product);
+  }
+
   const currentPrice = getEffectiveProductPrice(product);
   const previousPrice = toValidPrice(product?.price, currentPrice || 0);
   const hasDiscount =

@@ -21,7 +21,7 @@ const CategoryTypeModal = ({ isOpen, onClose }) => {
   const [editId, setEditId] = useState("");
   const [deleteId, setDeleteId] = useState("");
 
-  const visibleTypes = useMemo(
+const visibleTypes = useMemo(
     () =>
       (Array.isArray(types) ? types : [])
         .map((entry) => ({
@@ -31,28 +31,29 @@ const CategoryTypeModal = ({ isOpen, onClose }) => {
         .filter((entry) => entry.id && entry.name),
     [types],
   );
+  const isLatestType = (name) => String(name || "").trim().toLowerCase() === "latest";
 
   if (!isOpen) return null;
 
   const submit = async () => {
     const name = normalizeName(draftName);
     if (!name) {
-      toast.error("Type name is required");
+      toast.error("Category name is required");
       return;
     }
 
     try {
       if (editId) {
         await dispatch(updateCategoryType({ id: editId, changes: { name } })).unwrap();
-        toast.success("Type updated");
+        toast.success("Category name updated");
       } else {
         await dispatch(createCategoryType({ name })).unwrap();
-        toast.success("Type added");
+        toast.success("Category name added");
       }
       setDraftName("");
       setEditId("");
     } catch (error) {
-      toast.error(String(error || "Failed to save type"));
+      toast.error(String(error || "Failed to save category name"));
     }
   };
 
@@ -63,14 +64,14 @@ const CategoryTypeModal = ({ isOpen, onClose }) => {
     if (!id) return;
     try {
       await dispatch(deleteCategoryType(id)).unwrap();
-      toast.success("Type deleted (reassigned to Latest)");
+      toast.success("Category name deleted (reassigned to Latest)");
       setDeleteId("");
       if (editId === id) {
         setEditId("");
         setDraftName("");
       }
     } catch (error) {
-      toast.error(String(error || "Failed to delete type"));
+      toast.error(String(error || "Failed to delete category name"));
     }
   };
 
@@ -88,9 +89,9 @@ const CategoryTypeModal = ({ isOpen, onClose }) => {
         >
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div>
-              <h3 className="text-lg font-semibold text-black">Manage Types</h3>
+              <h3 className="text-lg font-semibold text-black">Manage Category Names</h3>
               <p className="text-sm text-gray-600">
-                Add, rename, or delete category/product types.
+                Add, rename, or delete category names used across the catalog.
               </p>
             </div>
             <button
@@ -108,7 +109,7 @@ const CategoryTypeModal = ({ isOpen, onClose }) => {
               <input
                 value={draftName}
                 onChange={(event) => setDraftName(event.target.value)}
-                placeholder={editId ? "Rename type..." : "New type name..."}
+                placeholder={editId ? "Rename category name..." : "New category name..."}
                 className="flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-black outline-none focus:border-black"
               />
               <button
@@ -144,12 +145,12 @@ const CategoryTypeModal = ({ isOpen, onClose }) => {
             <div className="mt-5 max-h-[320px] overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-3">
               {visibleTypes.length === 0 ? (
                 <p className="px-2 py-8 text-center text-sm text-gray-600">
-                  No custom types yet.
+                  No category names yet.
                 </p>
               ) : (
                 <ul className="space-y-2">
                   {visibleTypes.map((type) => (
-                    <li
+                  <li
                       key={type.id}
                       className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2.5 border border-gray-100"
                     >
@@ -157,35 +158,42 @@ const CategoryTypeModal = ({ isOpen, onClose }) => {
                         {type.name}
                       </span>
                       <span className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditId(type.id);
-                            setDraftName(type.name);
-                          }}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-blue-600 transition hover:bg-blue-50"
-                          title="Edit"
-                        >
-                          <FiEdit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => askDelete(type.id)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
-                          title="Delete"
-                        >
-                          <FiTrash2 className="h-4 w-4" />
-                        </button>
+                        {isLatestType(type.name) ? (
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-600">
+                            Locked
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditId(type.id);
+                                setDraftName(type.name);
+                              }}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-blue-600 transition hover:bg-blue-50"
+                              title="Edit"
+                            >
+                              <FiEdit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => askDelete(type.id)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
+                              title="Delete"
+                            >
+                              <FiTrash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
                       </span>
-                    </li>
-                  ))}
-                </ul>
+                  </li>
+                ))}
+              </ul>
               )}
             </div>
 
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 border border-amber-100">
-              Deleting a type automatically reassigns any categories and products
-              using it back to <span className="font-semibold">Latest</span>.
+              Latest is locked and always available. Other category names can be renamed or removed.
             </div>
           </div>
         </div>
@@ -193,8 +201,8 @@ const CategoryTypeModal = ({ isOpen, onClose }) => {
 
       <ConfirmModal
         isOpen={Boolean(deleteId)}
-        title="Delete type?"
-        message="Any categories/products using this type will be reassigned to Latest."
+        title="Delete category name?"
+        message="Any categories/products using this category name will be reassigned to Latest."
         confirmLabel="Delete"
         cancelLabel="Cancel"
         isDanger

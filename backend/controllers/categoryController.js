@@ -1,5 +1,9 @@
 const Category = require("../models/Category");
-const { CategoryType } = require("../models/CategoryType");
+const {
+  CategoryType,
+  ensureLatestCategoryType,
+  normalizeTypeName,
+} = require("../models/CategoryType");
 const { uploadImageBuffer, deleteImage } = require("../config/cloudinary");
 const { clearResponseCacheByPrefix } = require("../middlewares/responseCache");
 
@@ -19,6 +23,16 @@ const normalizeCategoryImage = (value) => {
   return normalized;
 };
 
+const normalizeCategoryName = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
+
+const normalizeCategoryType = (value) => {
+  const normalized = normalizeTypeName(value);
+  return normalized || "Latest";
+};
+
 const uploadCategoryImage = async (file) => {
   if (!file?.buffer) return null;
   return uploadImageBuffer(file.buffer, CATEGORY_IMAGE_OPTIONS);
@@ -30,14 +44,36 @@ const uploadCategoryImage = async (file) => {
 const createCategory = async (req, res) => {
   let uploadedImagePublicId = "";
   try {
-    const { name, type, description } = req.body;
+    await ensureLatestCategoryType();
+    const name = normalizeCategoryName(req.body?.name);
+    const type = normalizeCategoryType(req.body?.type);
+    const description = String(req.body?.description || "").trim();
 
-    // Check if category already exists
-    const categoryExists = await Category.findOne({ name });
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: "Sub category is required",
+      });
+    }
+
+    const typeExists = await CategoryType.findOne({
+      normalizedName: type.toLowerCase(),
+    });
+    if (!typeExists && type.toLowerCase() !== "latest") {
+      return res.status(400).json({
+        success: false,
+        message: "Category name not found",
+      });
+    }
+
+    const categoryExists = await Category.findOne({
+      normalizedType: type.toLowerCase(),
+      normalizedName: name.toLowerCase(),
+    });
     if (categoryExists) {
       return res.status(400).json({
         success: false,
-        message: "Category already exists",
+        message: "Sub category already exists under this category name",
       });
     }
 
@@ -56,8 +92,8 @@ const createCategory = async (req, res) => {
     // Create new category
     const category = await Category.create({
       name,
-      type: type || "General",
-      description: String(description || "").trim(),
+      type,
+      description,
       image: normalizeCategoryImage(image),
       imagePublicId,
       isActive: true,
@@ -74,6 +110,12 @@ const createCategory = async (req, res) => {
     if (uploadedImagePublicId) {
       await deleteImage(uploadedImagePublicId);
     }
+    if (error?.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Sub category already exists under this category name",
+      });
+    }
     console.error("Create category error:", error);
     res.status(500).json({
       success: false,
@@ -88,8 +130,9 @@ const createCategory = async (req, res) => {
 // @access  Public
 const getPublicCategories = async (req, res) => {
   try {
+    await ensureLatestCategoryType();
     const categories = await Category.find({ isActive: true })
-      .select("name type description image _id")
+      .select("name type description image _id normalizedType normalizedName")
       .sort({ name: 1 })
       .lean();
 
@@ -97,6 +140,17 @@ const getPublicCategories = async (req, res) => {
       .select("name createdAt")
       .sort({ createdAt: -1 })
       .lean();
+
+    const latestExists = categoryTypes.some(
+      (entry) => String(entry?.name || "").trim().toLowerCase() === "latest",
+    );
+    if (!latestExists) {
+      categoryTypes.unshift({
+        _id: "latest",
+        name: "Latest",
+        createdAt: null,
+      });
+    }
 
     res.json({
       success: true,
@@ -119,6 +173,7 @@ const getPublicCategories = async (req, res) => {
 // @access  Private (Admin only)
 const getCategories = async (req, res) => {
   try {
+    await ensureLatestCategoryType();
     const categories = await Category.find().sort({ createdAt: -1 });
 
     res.json({
@@ -170,7 +225,11 @@ const getCategory = async (req, res) => {
 const updateCategory = async (req, res) => {
   let uploadedImagePublicId = "";
   try {
-    const { name, type, description, isActive } = req.body;
+    await ensureLatestCategoryType();
+    const nextName = normalizeCategoryName(req.body?.name);
+    const nextType = normalizeCategoryType(req.body?.type);
+    const description = req.body?.description;
+    const { isActive } = req.body;
 
     let category = await Category.findById(req.params.id);
     if (!category) {
@@ -180,16 +239,32 @@ const updateCategory = async (req, res) => {
       });
     }
 
-    // Check if new name already exists
-    if (name && name !== category.name) {
-      const nameExists = await Category.findOne({ name });
+    const typeExists = await CategoryType.findOne({
+      normalizedName: nextType.toLowerCase(),
+    });
+    if (!typeExists && nextType.toLowerCase() !== "latest") {
+      return res.status(400).json({
+        success: false,
+        message: "Category name not found",
+      });
+    }
+
+    if (nextName || nextType) {
+      const resolvedName = nextName || category.name;
+      const nameExists = await Category.findOne({
+        _id: { $ne: category._id },
+        normalizedType: nextType.toLowerCase(),
+        normalizedName: resolvedName.toLowerCase(),
+      });
       if (nameExists) {
         return res.status(400).json({
           success: false,
-          message: "Category name already exists",
+          message: "Sub category already exists under this category name",
         });
       }
     }
+
+    const previousType = String(category.type || "Latest").trim();
 
     const previousImagePublicId = category.imagePublicId || "";
     let nextImage = category.image || "";
@@ -207,8 +282,8 @@ const updateCategory = async (req, res) => {
     category = await Category.findByIdAndUpdate(
       req.params.id,
       {
-        name,
-        type: type || category.type,
+        name: nextName || category.name,
+        type: nextType || category.type,
         description:
           description !== undefined
             ? String(description || "").trim()
@@ -224,6 +299,17 @@ const updateCategory = async (req, res) => {
     if (req.file && previousImagePublicId && previousImagePublicId !== nextImagePublicId) {
       await deleteImage(previousImagePublicId);
     }
+    if (previousType.toLowerCase() !== String(category.type || "").trim().toLowerCase()) {
+      await require("../models/Product").updateMany(
+        { category: category._id },
+        {
+          $set: {
+            productType: category.type,
+            updatedAt: Date.now(),
+          },
+        },
+      );
+    }
     invalidatePublicCategoryCache();
 
     res.json({
@@ -234,6 +320,12 @@ const updateCategory = async (req, res) => {
   } catch (error) {
     if (uploadedImagePublicId) {
       await deleteImage(uploadedImagePublicId);
+    }
+    if (error?.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Sub category already exists under this category name",
+      });
     }
     console.error("Update category error:", error);
     res.status(500).json({
@@ -249,6 +341,7 @@ const updateCategory = async (req, res) => {
 // @access  Private (Admin only)
 const deleteCategory = async (req, res) => {
   try {
+    await ensureLatestCategoryType();
     const category = await Category.findById(req.params.id);
 
     if (!category) {
@@ -260,6 +353,16 @@ const deleteCategory = async (req, res) => {
 
     if (category.imagePublicId) {
       await deleteImage(category.imagePublicId);
+    }
+
+    const linkedProducts = await require("../models/Product").countDocuments({
+      category: category._id,
+    });
+    if (linkedProducts > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "This sub category is in use and cannot be deleted",
+      });
     }
 
     await category.deleteOne();

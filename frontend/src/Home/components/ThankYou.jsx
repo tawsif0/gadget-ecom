@@ -482,10 +482,16 @@ const ThankYou = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate("/");
+              }
+            }}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition hover:text-black group"
           >
-            <span>Back to Home</span>
+            <span>Go back</span>
             <FiChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </button>
         </div>
@@ -971,11 +977,17 @@ const ThankYou = () => {
                   <FiTruck className="h-4 w-4" />
                   Track This Order
                 </button>
-                <button
-                  onClick={() => navigate("/")}
+                 <button
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      navigate(-1);
+                    } else {
+                      navigate("/");
+                    }
+                  }}
                   className="inline-flex w-full items-center justify-center rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-black hover:text-black"
                 >
-                  Continue Shopping
+                  Go back
                 </button>
               </div>
             </div>

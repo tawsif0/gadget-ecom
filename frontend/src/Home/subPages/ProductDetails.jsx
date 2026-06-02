@@ -259,6 +259,7 @@ const ProductDetails = () => {
     () => getStoredProductTab(id) || "description",
   );
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [youMayLikeProducts, setYouMayLikeProducts] = useState([]);
   const [relatedProductsLoading, setRelatedProductsLoading] = useState(false);
   const [relatedCarouselHasOverflow, setRelatedCarouselHasOverflow] =
     useState(false);
@@ -645,6 +646,7 @@ const ProductDetails = () => {
   useEffect(() => {
     if (!product?._id) {
       setRelatedProducts([]);
+      setYouMayLikeProducts([]);
       return;
     }
 
@@ -654,8 +656,8 @@ const ProductDetails = () => {
       return value?._id ? String(value._id) : "";
     };
 
-    const categoryId = resolveCategoryId(product.category);
-    const productType = String(product.productType || "").trim();
+    const currentSubcategoryId = resolveCategoryId(product.category);
+    const currentParentCategory = product?.category?.type || "";
     let cancelled = false;
 
     const fetchRelatedProducts = async () => {
@@ -666,9 +668,10 @@ const ProductDetails = () => {
         });
         const payload =
           response.data?.products || response.data?.data || response.data;
-        const products = Array.isArray(payload) ? payload : [];
+        const allProductsList = Array.isArray(payload) ? payload : [];
 
-        const otherProducts = products.filter(
+        // Exclude the current product
+        const otherProducts = allProductsList.filter(
           (entry) => String(entry?._id || "") !== String(product._id || ""),
         );
 
@@ -678,26 +681,37 @@ const ProductDetails = () => {
           return value?._id ? String(value._id) : "";
         };
 
-        let resolvedRelated = otherProducts;
-        if (categoryId) {
-          const sameCategory = otherProducts.filter(
-            (entry) => resolveEntryCategoryId(entry.category) === categoryId,
-          );
-          if (sameCategory.length > 0) resolvedRelated = sameCategory;
-        }
+        // 1. Related products: MUST share same subcategory OR same parent category/type
+        const related = otherProducts.filter((entry) => {
+          const entrySubcatId = resolveEntryCategoryId(entry.category);
+          const entryParentCat = entry.category?.type || "";
 
-        if (!categoryId && productType) {
-          const sameType = otherProducts.filter(
-            (entry) => String(entry?.productType || "").trim() === productType,
-          );
-          if (sameType.length > 0) resolvedRelated = sameType;
-        }
+          const isSameSubcategory = currentSubcategoryId && entrySubcatId === currentSubcategoryId;
+          const isSameParentCategory = currentParentCategory && entryParentCat.toLowerCase() === currentParentCategory.toLowerCase();
+
+          return isSameSubcategory || isSameParentCategory;
+        });
+
+        // 2. You may like products: products from other categories and other subcategories
+        const youMayLike = otherProducts.filter((entry) => {
+          const entrySubcatId = resolveEntryCategoryId(entry.category);
+          const entryParentCat = entry.category?.type || "";
+
+          const isSameSubcategory = currentSubcategoryId && entrySubcatId === currentSubcategoryId;
+          const isSameParentCategory = currentParentCategory && entryParentCat.toLowerCase() === currentParentCategory.toLowerCase();
+
+          return !isSameSubcategory && !isSameParentCategory;
+        });
 
         if (!cancelled) {
-          setRelatedProducts(resolvedRelated.slice(0, 8));
+          setRelatedProducts(related.slice(0, 4));
+          setYouMayLikeProducts(youMayLike.slice(0, 8));
         }
       } catch (_error) {
-        if (!cancelled) setRelatedProducts([]);
+        if (!cancelled) {
+          setRelatedProducts([]);
+          setYouMayLikeProducts([]);
+        }
       } finally {
         if (!cancelled) setRelatedProductsLoading(false);
       }
@@ -707,7 +721,7 @@ const ProductDetails = () => {
     return () => {
       cancelled = true;
     };
-  }, [product?._id, product?.category, product?.productType]);
+  }, [product?._id, product?.category]);
 
   useEffect(() => {
     if (!settingsLoaded || !product?._id || typeof window === "undefined") {
@@ -3535,7 +3549,7 @@ const ProductDetails = () => {
             </div>
           </div>
         </div>
-        {relatedProductsLoading || relatedProducts.length > 0 ? (
+        {(!relatedProductsLoading && relatedProducts.length === 0) ? null : (
           <section className="mx-auto mt-32 w-full max-w-310 pb-6">
             <div className="mb-14 flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -3581,6 +3595,58 @@ const ProductDetails = () => {
                     </div>
                   ))
                 : relatedProducts.map((entry) => (
+                    <div key={entry._id} className="storefront-card-grid__item">
+                      <StorefrontProductCard
+                        product={entry}
+                        className="h-full"
+                        onViewDetails={() => handleNavigateToProduct(entry._id)}
+                      />
+                    </div>
+                  ))}
+            </div>
+          </section>
+        )}
+
+        {(relatedProductsLoading || youMayLikeProducts.length > 0) ? (
+          <section className="mx-auto mt-20 w-full max-w-310 pb-6">
+            <div className="mb-14 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">
+                  You may also like
+                </h2>
+                <div className="mt-3 h-1 w-12 bg-black" />
+              </div>
+              <button
+                type="button"
+                data-no-scroll-top
+                onClick={() => {
+                  navigate("/shop");
+                  if (typeof window !== "undefined") window.scrollTo(0, 0);
+                }}
+                className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400 transition-colors hover:text-black"
+              >
+                View all collection
+              </button>
+            </div>
+
+            <div className="storefront-card-grid">
+              {relatedProductsLoading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={`you-may-like-skeleton-${index}`}
+                      className="storefront-card-grid__item animate-pulse"
+                    >
+                      <div className="storefront-product-card rounded-[22px] border border-zinc-100 bg-white p-3 shadow-sm">
+                        <div className="aspect-square rounded-[18px] bg-zinc-100" />
+                        <div className="mt-4 space-y-3">
+                          <div className="h-3 w-24 rounded bg-zinc-100" />
+                          <div className="h-4 w-4/5 rounded bg-zinc-100" />
+                          <div className="h-10 w-full rounded bg-zinc-100" />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                : youMayLikeProducts.map((entry) => (
                     <div key={entry._id} className="storefront-card-grid__item">
                       <StorefrontProductCard
                         product={entry}

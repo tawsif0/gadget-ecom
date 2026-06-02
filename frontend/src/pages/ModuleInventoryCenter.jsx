@@ -324,7 +324,10 @@ const ModuleInventoryCenter = () => {
                   <div className="flex flex-wrap gap-2 lg:justify-end">
                     <button
                       type="button"
-                      onClick={() => openDashboardTab("modify-product")}
+                      onClick={() => {
+                        localStorage.setItem("editProductId", product._id);
+                        openDashboardTab("modify-product");
+                      }}
                       className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 text-sm font-semibold text-black transition hover:border-black"
                     >
                       <FiEdit3 className="h-4 w-4" />

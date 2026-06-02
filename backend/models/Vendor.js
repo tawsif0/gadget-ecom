@@ -75,21 +75,6 @@ const vendorSchema = new mongoose.Schema(
       default: "pending",
       index: true,
     },
-    commissionType: {
-      type: String,
-      enum: ["inherit", "percentage", "fixed", "hybrid"],
-      default: "inherit",
-    },
-    commissionValue: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    commissionFixed: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
     isVerified: {
       type: Boolean,
       default: false,

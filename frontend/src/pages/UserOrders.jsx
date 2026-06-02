@@ -394,12 +394,12 @@ const UserOrders = ({ onTrackOrder }) => {
             You haven't placed any orders yet. Start shopping to see your orders
             here.
           </p>
-          <a
-            href="/shop"
-            className="inline-block px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-block px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors cursor-pointer"
           >
-            Start Shopping
-          </a>
+            Go back
+          </button>
         </div>
       ) : (
         <div className="space-y-4">

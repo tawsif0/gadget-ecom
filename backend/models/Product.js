@@ -219,21 +219,6 @@ const productSchema = new mongoose.Schema({
       "Product category is required",
     ],
   },
-  commissionType: {
-    type: String,
-    enum: ["inherit", "percentage", "fixed", "hybrid"],
-    default: "inherit",
-  },
-  commissionValue: {
-    type: Number,
-    default: 0,
-    min: [0, "Commission value cannot be negative"],
-  },
-  commissionFixed: {
-    type: Number,
-    default: 0,
-    min: [0, "Fixed commission cannot be negative"],
-  },
   isRecurring: {
     type: Boolean,
     default: false,

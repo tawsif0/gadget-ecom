@@ -1,5 +1,4 @@
 const Coupon = require("../models/Coupon.js");
-const Vendor = require("../models/Vendor.js");
 const Product = require("../models/Product.js");
 const Category = require("../models/Category.js");
 const {
@@ -12,8 +11,6 @@ const {
 
 const isAdminUser = (user) =>
   user && (user.userType === "admin" || user.role === "admin");
-
-const isVendorUser = () => false;
 
 const ensureCouponManager = (req, res) => {
   if (isAdminUser(req.user)) return true;
@@ -65,15 +62,7 @@ const CATEGORY_TYPE_OPTIONS = [
 ];
 
 const normalizeCategoryTypes = (value) => {
-  const source = normalizeStringArray(value);
-  return source
-    .map((entry) => {
-      const matched = CATEGORY_TYPE_OPTIONS.find(
-        (option) => option.toLowerCase() === entry.toLowerCase(),
-      );
-      return matched || "";
-    })
-    .filter(Boolean);
+  return normalizeStringArray(value);
 };
 
 const resolveCouponCatalogTargeting = async ({
@@ -81,7 +70,6 @@ const resolveCouponCatalogTargeting = async ({
   targetCategoryTypes,
   targetCategories,
   targetProducts,
-  vendorId = null,
 }) => {
   const normalizedMode =
     String(applicabilityMode || "").trim().toLowerCase() === "targeted"
@@ -106,7 +94,7 @@ const resolveCouponCatalogTargeting = async ({
     !normalizedTargetCategories.length &&
     !normalizedTargetProducts.length
   ) {
-    return { error: "Select at least one category type, category, or product" };
+    return { error: "Select at least one category name, sub category, or product" };
   }
 
   if (normalizedTargetCategories.length > 0) {
@@ -121,22 +109,11 @@ const resolveCouponCatalogTargeting = async ({
 
   if (normalizedTargetProducts.length > 0) {
     const products = await Product.find({ _id: { $in: normalizedTargetProducts } })
-      .select("_id vendor")
+      .select("_id")
       .lean();
 
     if (products.length !== normalizedTargetProducts.length) {
       return { error: "One or more selected target products are invalid" };
-    }
-
-    if (vendorId) {
-      const mismatched = products.some(
-        (product) => String(product.vendor || "") !== String(vendorId),
-      );
-      if (mismatched) {
-        return {
-          error: "Target products must belong to the same vendor scope",
-        };
-      }
     }
   }
 
@@ -145,55 +122,6 @@ const resolveCouponCatalogTargeting = async ({
     targetCategoryTypes: normalizedCategoryTypes,
     targetCategories: normalizedTargetCategories,
     targetProducts: normalizedTargetProducts,
-  };
-};
-
-const getVendorForRequester = async (req) =>
-  Vendor.findOne({ user: req.user.id || req.user._id })
-    .select("_id storeName status")
-    .lean();
-
-const resolveCouponVendorForPayload = async (req, vendorIdFromPayload) => {
-  if (isVendorUser(req.user) && !isAdminUser(req.user)) {
-    const requesterVendor = await getVendorForRequester(req);
-    if (!requesterVendor) {
-      return {
-        error: "Vendor profile not found",
-      };
-    }
-
-    if (requesterVendor.status !== "approved") {
-      return {
-        error: "Vendor profile is not approved yet",
-      };
-    }
-
-    return {
-      vendorId: requesterVendor._id,
-      vendor: requesterVendor,
-    };
-  }
-
-  if (isAdminUser(req.user) && vendorIdFromPayload) {
-    const vendor = await Vendor.findById(vendorIdFromPayload)
-      .select("_id storeName status")
-      .lean();
-
-    if (!vendor) {
-      return {
-        error: "Vendor not found",
-      };
-    }
-
-    return {
-      vendorId: vendor._id,
-      vendor,
-    };
-  }
-
-  return {
-    vendorId: null,
-    vendor: null,
   };
 };
 
@@ -219,7 +147,6 @@ exports.applyCoupon = async (req, res) => {
       discount: validation.discount,
       finalAmount: validation.finalAmount,
       eligibleSubtotal: validation.eligibleSubtotal,
-      appliesToVendor: validation.appliesToVendor,
       coupon: {
         _id: validation.coupon._id,
         code: validation.coupon.code,
@@ -227,7 +154,6 @@ exports.applyCoupon = async (req, res) => {
         freeShipping: validation.coupon.offerType === "free_shipping",
         discountType: validation.coupon.discountType,
         discountValue: validation.coupon.discountValue,
-        vendor: validation.coupon.vendor || null,
       },
     });
   } catch (error) {
@@ -239,7 +165,7 @@ exports.applyCoupon = async (req, res) => {
   }
 };
 
-// Create coupon (admin/vendor)
+// Create coupon (admin only)
 exports.createCoupon = async (req, res) => {
   try {
     if (!ensureCouponManager(req, res)) return;
@@ -254,7 +180,6 @@ exports.createCoupon = async (req, res) => {
       validUntil,
       usageLimit,
       isActive,
-      vendorId,
       requiredProducts,
       applicabilityMode,
       targetCategoryTypes,
@@ -306,6 +231,7 @@ exports.createCoupon = async (req, res) => {
         message: "Valid expiry date is required",
       });
     }
+    parsedValidUntil.setHours(23, 59, 59, 999);
 
     const usageLimitResult = parseUsageLimit(usageLimit);
     if (usageLimitResult.error) {
@@ -315,20 +241,11 @@ exports.createCoupon = async (req, res) => {
       });
     }
 
-    const vendorResolution = await resolveCouponVendorForPayload(req, vendorId);
-    if (vendorResolution.error) {
-      return res.status(400).json({
-        success: false,
-        message: vendorResolution.error,
-      });
-    }
-
     const catalogTargeting = await resolveCouponCatalogTargeting({
       applicabilityMode,
       targetCategoryTypes,
       targetCategories,
       targetProducts,
-      vendorId: vendorResolution.vendorId,
     });
     if (catalogTargeting.error) {
       return res.status(400).json({
@@ -347,7 +264,7 @@ exports.createCoupon = async (req, res) => {
 
     if (normalizedRequiredProducts.length > 0) {
       const products = await Product.find({ _id: { $in: normalizedRequiredProducts } })
-        .select("_id vendor")
+        .select("_id")
         .lean();
 
       if (products.length !== normalizedRequiredProducts.length) {
@@ -355,18 +272,6 @@ exports.createCoupon = async (req, res) => {
           success: false,
           message: "One or more required products are invalid",
         });
-      }
-
-      if (vendorResolution.vendorId) {
-        const mismatched = products.some(
-          (product) => String(product.vendor || "") !== String(vendorResolution.vendorId),
-        );
-        if (mismatched) {
-          return res.status(400).json({
-            success: false,
-            message: "Combo products must belong to the same vendor scope",
-          });
-        }
       }
     }
 
@@ -411,29 +316,15 @@ exports.createCoupon = async (req, res) => {
   }
 };
 
-// Get coupons (admin gets all, vendor gets own)
+// Get coupons (admin only)
 exports.getCoupons = async (req, res) => {
   try {
     if (!ensureCouponManager(req, res)) return;
 
-    const query = {};
-
-    if (isVendorUser(req.user) && !isAdminUser(req.user)) {
-      const requesterVendor = await getVendorForRequester(req);
-      if (!requesterVendor) {
-        return res.status(404).json({
-          success: false,
-          message: "Vendor profile not found",
-        });
-      }
-      query.vendor = requesterVendor._id;
-    }
-
-    const coupons = await Coupon.find(query)
-      .populate("vendor", "storeName slug")
-      .populate("requiredProducts", "title vendor")
+    const coupons = await Coupon.find()
+      .populate("requiredProducts", "title")
       .populate("targetCategories", "name type")
-      .populate("targetProducts", "title vendor")
+      .populate("targetProducts", "title")
       .sort({ createdAt: -1 });
 
     res.json({
@@ -462,29 +353,10 @@ const ensureCanManageCoupon = async (req, couponId) => {
     return { coupon };
   }
 
-  if (!isVendorUser(req.user)) {
-    return {
-      status: 403,
-      message: "Admin or vendor access required",
-    };
-  }
-
-  const requesterVendor = await getVendorForRequester(req);
-  if (!requesterVendor) {
-    return {
-      status: 404,
-      message: "Vendor profile not found",
-    };
-  }
-
-  if (String(coupon.vendor || "") !== String(requesterVendor._id)) {
-    return {
-      status: 403,
-      message: "You can manage only your own vendor coupons",
-    };
-  }
-
-  return { coupon, requesterVendor };
+  return {
+    status: 403,
+    message: "Admin access required",
+  };
 };
 
 // Update coupon
@@ -510,7 +382,6 @@ exports.updateCoupon = async (req, res) => {
       validUntil,
       usageLimit,
       isActive,
-      vendorId,
       requiredProducts,
       applicabilityMode,
       targetCategoryTypes,
@@ -580,6 +451,7 @@ exports.updateCoupon = async (req, res) => {
           message: "Valid expiry date is required",
         });
       }
+      parsedValidUntil.setHours(23, 59, 59, 999);
       updateData.validUntil = parsedValidUntil;
     }
 
@@ -621,7 +493,6 @@ exports.updateCoupon = async (req, res) => {
           targetProducts !== undefined
             ? targetProducts
             : updateData.targetProducts || permission.coupon.targetProducts,
-        vendorId: null,
       });
 
       if (catalogTargeting.error) {
@@ -652,7 +523,7 @@ exports.updateCoupon = async (req, res) => {
 
       if (normalizedRequiredProducts.length > 0) {
         const products = await Product.find({ _id: { $in: normalizedRequiredProducts } })
-          .select("_id vendor")
+          .select("_id")
           .lean();
 
         if (products.length !== normalizedRequiredProducts.length) {
@@ -660,21 +531,6 @@ exports.updateCoupon = async (req, res) => {
             success: false,
             message: "One or more required products are invalid",
           });
-        }
-
-        const scopeVendorId = String(
-          updateData.vendor !== undefined ? updateData.vendor : permission.coupon.vendor || "",
-        );
-        if (scopeVendorId) {
-          const mismatched = products.some(
-            (product) => String(product.vendor || "") !== scopeVendorId,
-          );
-          if (mismatched) {
-            return res.status(400).json({
-              success: false,
-              message: "Combo products must belong to the same vendor scope",
-            });
-          }
         }
       }
 
@@ -708,10 +564,9 @@ exports.updateCoupon = async (req, res) => {
       new: true,
       runValidators: true,
     })
-      .populate("vendor", "storeName slug")
-      .populate("requiredProducts", "title vendor")
+      .populate("requiredProducts", "title")
       .populate("targetCategories", "name type")
-      .populate("targetProducts", "title vendor");
+      .populate("targetProducts", "title");
 
     res.json({
       success: true,

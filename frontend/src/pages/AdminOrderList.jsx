@@ -1,4 +1,4 @@
-﻿/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 // pages/AdminOrderList.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +19,7 @@ import {
   FiXCircle,
   FiTrash2,
   FiChevronRight as FiChevronRightIcon,
+  FiX,
 } from "react-icons/fi";
 import {
   FaBox,
@@ -2023,9 +2024,9 @@ const AdminOrderList = () => {
                 </div>
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg text-lg"
+                  className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg text-lg text-gray-500 hover:text-black transition-colors"
                 >
-                  âœ•
+                  <FiX className="w-5 h-5" />
                 </button>
               </div>
 

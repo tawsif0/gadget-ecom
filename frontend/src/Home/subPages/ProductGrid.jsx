@@ -763,6 +763,21 @@ const ProductGrid = () => {
     return category?.name || null;
   };
 
+  const hasCategoryProducts = React.useMemo(() => {
+    if (products.length === 0) return false;
+    return products.some((product) => {
+      if (selectedCategory !== "all") {
+        const catId = getCategoryIdFromProduct(product);
+        if (catId !== selectedCategory) return false;
+      }
+      if (selectedCategoryType !== "all") {
+        const pType = getCategoryTypeForProduct(product);
+        if (!pType || pType.toLowerCase() !== selectedCategoryType.toLowerCase()) return false;
+      }
+      return true;
+    });
+  }, [products, selectedCategory, selectedCategoryType, categories]);
+
   const highlightText = (text, term) => {
     if (!text || !term) return text;
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -995,13 +1010,19 @@ const ProductGrid = () => {
                           setSelectedCategoryType(activeCategoryType);
                           navigate(`/shop?type=${encodeURIComponent(activeCategoryType)}`);
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors font-semibold ${
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between font-semibold ${
                           selectedCategory === "all"
                             ? "bg-orange-600 text-white font-bold"
                             : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
                         }`}
                       >
-                        All {getCategoryTypeDisplayName(activeCategoryType)}
+                        <span>All {getCategoryTypeDisplayName(activeCategoryType)}</span>
+                        <span className={`text-xs font-semibold ${selectedCategory === "all" ? "text-white" : "text-slate-500"}`}>
+                          ({products.filter((p) => {
+                            const pType = getCategoryTypeForProduct(p);
+                            return pType && pType.toLowerCase() === activeCategoryType.toLowerCase();
+                          }).length})
+                        </span>
                       </button>
                       {categories
                         .filter(
@@ -1009,23 +1030,31 @@ const ProductGrid = () => {
                             (category.type || "Latest").toLowerCase() ===
                             activeCategoryType.toLowerCase()
                         )
-                        .map((category) => (
-                          <button
-                            key={category._id}
-                            onClick={() => {
-                              setSelectedCategory(category._id);
-                              setSelectedCategoryType("all");
-                              navigate(`/shop?category=${category._id}`);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between font-semibold ${
-                              selectedCategory === category._id
-                                ? "bg-orange-50 text-orange-600 font-bold"
-                                : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
-                            }`}
-                          >
-                            <span>{category.name}</span>
-                          </button>
-                        ))}
+                        .map((category) => {
+                          const count = products.filter(
+                            (product) => getCategoryIdFromProduct(product) === category._id
+                          ).length;
+                          return (
+                            <button
+                              key={category._id}
+                              onClick={() => {
+                                setSelectedCategory(category._id);
+                                setSelectedCategoryType("all");
+                                navigate(`/shop?category=${category._id}`);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between font-semibold ${
+                                selectedCategory === category._id
+                                  ? "bg-orange-50 text-orange-600 font-bold"
+                                  : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
+                              }`}
+                            >
+                              <span>{category.name}</span>
+                              <span className={`text-xs font-semibold ${selectedCategory === category._id ? "text-orange-600" : "text-slate-500"}`}>
+                                ({count})
+                              </span>
+                            </button>
+                          );
+                        })}
                     </div>
                   )}
                 </div>
@@ -1254,12 +1283,14 @@ const ProductGrid = () => {
                     ? "No products found with the current filters"
                     : "Try adjusting your filters or check back later for new arrivals"}
                 </p>
-                <button
-                  onClick={resetFilters}
-                  className="px-5 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-full hover:bg-gray-900 transition-colors text-sm sm:text-base"
-                >
-                  Reset Filters
-                </button>
+                {hasCategoryProducts && (
+                  <button
+                    onClick={resetFilters}
+                    className="px-5 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-full hover:bg-gray-900 transition-colors text-sm sm:text-base"
+                  >
+                    Reset Filters
+                  </button>
+                )}
               </div>
             ) : (
               /* Grid View (always) */
@@ -1591,13 +1622,19 @@ const ProductGrid = () => {
                           navigate(`/shop?type=${encodeURIComponent(activeCategoryType)}`);
                           setShowMobileFilters(false);
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-lg font-semibold ${
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between font-semibold ${
                           selectedCategory === "all"
                             ? "bg-orange-600 text-white font-bold"
                             : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
                         }`}
                       >
-                        All {getCategoryTypeDisplayName(activeCategoryType)}
+                        <span>All {getCategoryTypeDisplayName(activeCategoryType)}</span>
+                        <span className={`text-xs font-semibold ${selectedCategory === "all" ? "text-white" : "text-slate-500"}`}>
+                          ({products.filter((p) => {
+                            const pType = getCategoryTypeForProduct(p);
+                            return pType && pType.toLowerCase() === activeCategoryType.toLowerCase();
+                          }).length})
+                        </span>
                       </button>
                       {categories
                         .filter(
@@ -1605,24 +1642,32 @@ const ProductGrid = () => {
                             (category.type || "Latest").toLowerCase() ===
                             activeCategoryType.toLowerCase()
                         )
-                        .map((category) => (
-                          <button
-                            key={category._id}
-                            onClick={() => {
-                              setSelectedCategory(category._id);
-                              setSelectedCategoryType("all");
-                              navigate(`/shop?category=${category._id}`);
-                              setShowMobileFilters(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between font-semibold ${
-                              selectedCategory === category._id
-                                ? "bg-orange-50 text-orange-600 font-bold"
-                                : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
-                            }`}
-                          >
-                            <span>{category.name}</span>
-                          </button>
-                        ))}
+                        .map((category) => {
+                          const count = products.filter(
+                            (product) => getCategoryIdFromProduct(product) === category._id
+                          ).length;
+                          return (
+                            <button
+                              key={category._id}
+                              onClick={() => {
+                                setSelectedCategory(category._id);
+                                setSelectedCategoryType("all");
+                                navigate(`/shop?category=${category._id}`);
+                                setShowMobileFilters(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between font-semibold ${
+                                selectedCategory === category._id
+                                  ? "bg-orange-50 text-orange-600 font-bold"
+                                  : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
+                              }`}
+                            >
+                              <span>{category.name}</span>
+                              <span className={`text-xs font-semibold ${selectedCategory === category._id ? "text-orange-600" : "text-slate-500"}`}>
+                                ({count})
+                              </span>
+                            </button>
+                          );
+                        })}
                     </div>
                   </div>
                 ) : (

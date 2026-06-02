@@ -358,11 +358,11 @@ const AddToCart = () => {
     <section className="min-h-screen bg-[#f5f5f5] py-8 md:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <button
-          onClick={() => navigate("/shop")}
+          onClick={() => navigate(-1)}
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black mb-6 transition-colors group"
         >
           <FaArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to Shopping</span>
+          <span>Go back</span>
         </button>
      
         {cartItems.length === 0 ? (
@@ -378,10 +378,10 @@ const AddToCart = () => {
               continue to checkout.
             </p>
             <button
-              onClick={() => navigate("/shop")}
+              onClick={() => navigate(-1)}
               className="mt-6 inline-flex items-center rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-900"
             >
-              Continue Shopping
+              Go back
             </button>
           </div>
         ) : (
@@ -397,7 +397,7 @@ const AddToCart = () => {
                       {cartCount} products ready for checkout
                     </h2>
                     <p className="mt-1 text-sm text-gray-500">
-                      Update quantity, remove items, or continue shopping before placing the order.
+                      Update quantity, remove items, or go back before placing the order.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -656,10 +656,10 @@ const AddToCart = () => {
                   Proceed to Checkout
                 </button>
                 <button
-                  onClick={() => navigate("/shop")}
+                  onClick={() => navigate(-1)}
                   className="mt-3 w-full rounded-full border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-black hover:text-black"
                 >
-                  Continue Shopping
+                  Go back
                 </button>
               </div>
           

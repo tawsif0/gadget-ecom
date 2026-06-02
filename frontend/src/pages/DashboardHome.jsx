@@ -637,7 +637,7 @@ const DashboardHome = ({ user, onTabChange }) => {
                     </label>
                     <label className="block">
                       <span className="text-xs font-medium text-gray-600 mb-1 block">
-                        Category Type
+                        Category Name
                       </span>
                       <CategoryTypeSelect
                         value={analyticsFilters.categoryType}
@@ -667,7 +667,7 @@ const DashboardHome = ({ user, onTabChange }) => {
                       >
                         <option value="product">Product</option>
                         <option value="category">Category</option>
-                        <option value="categoryType">Category Type</option>
+                        <option value="categoryType">Category Name</option>
                       </select>
                     </label>
 

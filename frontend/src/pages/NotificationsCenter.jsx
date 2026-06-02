@@ -309,12 +309,19 @@ const NotificationsCenter = ({ user, onNavigate }) => {
               const deleting = deletingId === notification._id;
 
               return (
-                <MotionButton
+                <motion.div
                   key={notification._id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   whileHover={{ y: -2 }}
                   onClick={() => openNotification(notification)}
-                  className={`w-full rounded-3xl border px-5 py-5 text-left transition ${
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openNotification(notification);
+                    }
+                  }}
+                  className={`w-full rounded-3xl border px-5 py-5 text-left transition cursor-pointer ${
                     notification.isRead
                       ? "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                       : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
@@ -401,7 +408,7 @@ const NotificationsCenter = ({ user, onNavigate }) => {
                         : "Marks as read when opened"}
                     </span>
                   </div>
-                </MotionButton>
+                </motion.div>
               );
             })
           )}

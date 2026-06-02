@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { FiClock, FiEye } from "react-icons/fi";
 import { getProductPricingDisplay } from "../utils/productPricing";
@@ -34,6 +34,7 @@ const RecentlyViewedShelf = ({
   limit = 6,
   className = "",
 }) => {
+  const navigate = useNavigate();
   const items = useSelector((state) => state.recentlyViewed.items || []);
   const filteredItems = items
     .filter(
@@ -57,12 +58,12 @@ const RecentlyViewedShelf = ({
             <h2 className="mt-3 text-2xl font-black text-black">{title}</h2>
             <p className="mt-1 text-sm text-gray-600">{subtitle}</p>
           </div>
-          <Link
-            to="/shop"
-            className="inline-flex rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-black transition hover:border-black"
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:border-black cursor-pointer"
           >
-            Continue Shopping
-          </Link>
+            Go back
+          </button>
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">

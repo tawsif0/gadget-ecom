@@ -1,35 +1,169 @@
-/* eslint-disable no-unused-vars */
-// CreateCategory.jsx
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useDispatch, useSelector } from "react-redux";
+import ConfirmModal from "../../components/ConfirmModal";
 import CategoryTypeSelect from "../../components/CategoryTypeSelect";
-import RichTextEditor from "../../components/RichTextEditor";
+import {
+  createCategoryType,
+  deleteCategoryType,
+  fetchCategoryTypes,
+  updateCategoryType,
+} from "../../store/categoryTypeSlice";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import {
   dashboardFieldClass,
   dashboardFormSurfaceClass,
   dashboardLabelClass,
+  dashboardPrimaryButtonClass,
   dashboardSecondaryButtonClass,
 } from "../../utils/dashboardFormStyles";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 
-function CreateCategory() {
+const normalizeName = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
+
+function CreateCategory({ mode = "all" }) {
+  const dispatch = useDispatch();
   const { themeColor, buttonTextColor } = useThemeColors();
-  const [categoryName, setCategoryName] = useState("");
-  const [categoryType, setCategoryType] = useState("Latest");
-  const [categoryDescription, setCategoryDescription] = useState("");
-  const [categoryImageFile, setCategoryImageFile] = useState(null);
-  const [categoryImagePreview, setCategoryImagePreview] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [nameError, setNameError] = useState("");
-  const [typeError, setTypeError] = useState("");
+  const { list: categoryTypes } = useSelector((state) => state.categoryTypes);
 
-  // Types are centrally managed via CategoryTypeSelect
+  const [categoryTypeDraft, setCategoryTypeDraft] = useState("");
+  const [editingTypeId, setEditingTypeId] = useState("");
+  const [editingTypeDraft, setEditingTypeDraft] = useState("");
+  const [categoryTypeError, setCategoryTypeError] = useState("");
+  const [categoryTypeSaving, setCategoryTypeSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
-  const handleCategoryImageChange = (event) => {
+  const [subcategoryName, setSubcategoryName] = useState("");
+  const [subcategoryParent, setSubcategoryParent] = useState("Latest");
+  const [subcategoryImageFile, setSubcategoryImageFile] = useState(null);
+  const [subcategoryImagePreview, setSubcategoryImagePreview] = useState("");
+  const [subcategoryError, setSubcategoryError] = useState("");
+  const [subcategoryParentError, setSubcategoryParentError] = useState("");
+  const [subcategorySaving, setSubcategorySaving] = useState(false);
+
+  const sortedCategoryTypes = useMemo(() => {
+    const rows = (Array.isArray(categoryTypes) ? categoryTypes : [])
+      .slice()
+      .filter((entry) => String(entry?.name || "").trim())
+      .sort((a, b) =>
+        String(a?.name || "").localeCompare(String(b?.name || "")),
+      );
+
+    if (
+      !rows.some(
+        (entry) =>
+          String(entry?.name || "").trim().toLowerCase() === "latest",
+      )
+    ) {
+      rows.unshift({ _id: "latest", name: "Latest" });
+    }
+
+    return rows;
+  }, [categoryTypes]);
+
+  useEffect(() => {
+    dispatch(fetchCategoryTypes()).catch(() => undefined);
+  }, [dispatch]);
+
+  const resetCategoryTypeDraft = () => {
+    setCategoryTypeDraft("");
+    setEditingTypeId("");
+    setEditingTypeDraft("");
+    setCategoryTypeError("");
+  };
+
+  const saveCategoryType = async (event) => {
+    event.preventDefault();
+    const name = normalizeName(categoryTypeDraft);
+
+    if (!name) {
+      setCategoryTypeError("Category name is required");
+      return;
+    }
+
+    setCategoryTypeSaving(true);
+    try {
+      await dispatch(createCategoryType({ name })).unwrap();
+      toast.success("Category name created");
+
+      resetCategoryTypeDraft();
+    } catch (error) {
+      toast.error(String(error || "Failed to save category name"));
+    } finally {
+      setCategoryTypeSaving(false);
+    }
+  };
+
+  const beginEditCategoryType = (entry) => {
+    const id = String(entry?._id || entry?.id || "").trim();
+    const name = String(entry?.name || "").trim();
+    if (!id || name.toLowerCase() === "latest") return;
+    setEditingTypeId(id);
+    setEditingTypeDraft(name);
+    setCategoryTypeError("");
+  };
+
+  const cancelEditCategoryType = () => {
+    setEditingTypeId("");
+    setEditingTypeDraft("");
+    setCategoryTypeError("");
+  };
+
+  const saveEditedCategoryType = async () => {
+    const id = String(editingTypeId || "").trim();
+    const name = normalizeName(editingTypeDraft);
+    if (!id) return;
+    if (!name) {
+      setCategoryTypeError("Category name is required");
+      return;
+    }
+
+    setCategoryTypeSaving(true);
+    try {
+      await dispatch(updateCategoryType({ id, changes: { name } })).unwrap();
+      toast.success("Category name updated");
+      cancelEditCategoryType();
+    } catch (error) {
+      toast.error(String(error || "Failed to update category name"));
+    } finally {
+      setCategoryTypeSaving(false);
+    }
+  };
+
+  const askDeleteCategoryType = (entry) => {
+    const id = String(entry?._id || entry?.id || "").trim();
+    const name = String(entry?.name || "").trim();
+    if (!id || name.toLowerCase() === "latest") return;
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDeleteCategoryType = async () => {
+    const id = String(deleteTarget?.id || "").trim();
+    if (!id) return;
+
+    setDeleteSaving(true);
+    try {
+      await dispatch(deleteCategoryType(id)).unwrap();
+      toast.success("Category name deleted");
+      if (editingTypeId === id) {
+        cancelEditCategoryType();
+      }
+      setDeleteTarget(null);
+    } catch (error) {
+      toast.error(String(error || "Failed to delete category name"));
+    } finally {
+      setDeleteSaving(false);
+    }
+  };
+
+  const handleSubcategoryImageChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -47,64 +181,54 @@ function CreateCategory() {
       return;
     }
 
-    setCategoryImageFile(file);
+    setSubcategoryImageFile(file);
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setCategoryImagePreview(String(reader.result || ""));
+      setSubcategoryImagePreview(String(reader.result || ""));
     };
     reader.readAsDataURL(file);
   };
 
-  const removeCategoryImage = () => {
-    setCategoryImageFile(null);
-    setCategoryImagePreview("");
+  const removeSubcategoryImage = () => {
+    setSubcategoryImageFile(null);
+    setSubcategoryImagePreview("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const saveSubcategory = async (event) => {
+    event.preventDefault();
+    setSubcategoryError("");
+    setSubcategoryParentError("");
 
-    // Clear previous errors
-    setNameError("");
-    setTypeError("");
+    const resolvedName = normalizeName(subcategoryName);
+    const resolvedParent = normalizeName(subcategoryParent) || "Latest";
 
     let hasError = false;
-
-    // Validate name
-    if (!categoryName.trim()) {
-      setNameError("Category name cannot be empty");
+    if (!resolvedParent) {
+      setSubcategoryParentError("Select a category name");
       hasError = true;
     }
-
-    // Validate type
-    if (!categoryType) {
-      setTypeError("Please select a category type");
+    if (!resolvedName) {
+      setSubcategoryError("Sub category is required");
       hasError = true;
     }
-
     if (hasError) return;
 
-    setIsSubmitting(true);
-
+    setSubcategorySaving(true);
     try {
-      // Get token from localStorage
       const token = localStorage.getItem("token");
-
       if (!token) {
         toast.error("Authentication required. Please login again.");
-        setIsSubmitting(false);
         return;
       }
 
       const formData = new FormData();
-      const resolvedType = String(categoryType || "").trim();
-      formData.append("name", categoryName);
-      formData.append("type", resolvedType);
-      formData.append("description", categoryDescription);
+      formData.append("name", resolvedName);
+      formData.append("type", resolvedParent);
       formData.append("isActive", "true");
 
-      if (categoryImageFile) {
-        formData.append("image", categoryImageFile);
+      if (subcategoryImageFile) {
+        formData.append("image", subcategoryImageFile);
       }
 
       const response = await axios.post(`${baseUrl}/categories`, formData, {
@@ -115,214 +239,380 @@ function CreateCategory() {
       });
 
       if (response.data.success) {
-        // Reset form
-        setCategoryName("");
-        setCategoryType("Latest");
-        setCategoryDescription("");
-        setCategoryImageFile(null);
-        setCategoryImagePreview("");
-
-        // Show success toast
-        toast.success("Category created successfully!");
-
-        // Dispatch event for other components
+        setSubcategoryName("");
+        setSubcategoryParent("Latest");
+        setSubcategoryImageFile(null);
+        setSubcategoryImagePreview("");
+        toast.success("Sub category created successfully!");
         window.dispatchEvent(
           new CustomEvent("categoryCreated", {
             detail: response.data.category,
-          })
+          }),
         );
       }
-    } catch (err) {
-      console.error("Error creating category:", err);
-      const errorMsg =
-        err.response?.data?.message || "Failed to create category";
-      toast.error(errorMsg);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to create sub category");
     } finally {
-      setIsSubmitting(false);
+      setSubcategorySaving(false);
     }
   };
 
+  const showCategoryManager = mode !== "subcategory";
+  const showSubcategoryForm = mode !== "category";
+
+  const isSinglePage = mode !== "all";
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
       className="w-full"
     >
-      <div className="w-full">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className={`${dashboardFormSurfaceClass} p-4 md:p-8`}
-        >
-          <form onSubmit={handleSubmit} noValidate>
-            {/* Category Type Dropdown */}
-            <div className="mb-4 md:mb-6">
-              <label htmlFor="categoryType">
-                <span className={dashboardLabelClass}>Category Type *</span>
-              </label>
-              <CategoryTypeSelect
-                value={categoryType}
-                onChange={(value) => {
-                  setCategoryType(value);
-                  if (typeError) setTypeError("");
-                }}
-                placeholder="Category type"
-                buttonClassName={`${dashboardFieldClass} text-base md:text-lg ${
-                  typeError
-                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    : ""
-                }`}
-              />
-              {/* Red error text under the select */}
-              {typeError && (
-                <p className="mt-1 text-sm text-red-600 font-medium flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-1"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {typeError}
-                </p>
-              )}
-            </div>
-
-            {/* Category Name Field */}
-            <div className="mb-4">
-              <label htmlFor="categoryName">
-                <span className={dashboardLabelClass}>Category Name *</span>
-              </label>
-              <input
-                type="text"
-                id="categoryName"
-                value={categoryName}
-                onChange={(e) => {
-                  setCategoryName(e.target.value);
-                  // Clear error when user starts typing
-                  if (nameError) setNameError("");
-                }}
-                className={`${dashboardFieldClass} text-base md:text-lg ${
-                  nameError
-                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    : ""
-                }`}
-                placeholder="Enter category name"
-                autoComplete="off"
-              />
-              {/* Red error text under the input */}
-              {nameError && (
-                <p className="mt-1 text-sm text-red-600 font-medium flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-1"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {nameError}
-                </p>
-              )}
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="categoryDescription">
-                <span className={dashboardLabelClass}>Description</span>
-              </label>
-              <RichTextEditor
-                value={categoryDescription}
-                onChange={setCategoryDescription}
-                placeholder="Optional category description"
-                minHeight={180}
-              />
-            </div>
-
-            <div className="mb-4">
-              <label>
-                <span className={dashboardLabelClass}>Category Image</span>
-              </label>
-              <label className="flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm font-medium text-gray-700 transition hover:border-gray-400 hover:bg-gray-100">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg,image/webp,image/gif"
-                  className="hidden"
-                  onChange={handleCategoryImageChange}
-                />
-                Upload image
-              </label>
-              <p className="mt-1 text-xs text-gray-500">
-                Optional. This image will be uploaded to Cloudinary and used on the demo home category rail.
+      <div
+        className={`grid gap-6 ${
+          isSinglePage ? "" : "lg:grid-cols-[1fr_1.2fr]"
+        }`}
+      >
+        {showCategoryManager ? (
+          <motion.section
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className={`${dashboardFormSurfaceClass} p-5 md:p-6`}
+          >
+            <div className="mb-5 flex flex-col gap-2">
+              <div className="inline-flex w-fit rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-600">
+                Category Name Page
+              </div>
+              <h2 className="text-xl font-semibold text-black">
+                Add and organize category names
+              </h2>
+              <p className="text-sm text-gray-600">
+                Latest is always available. You can add, rename, or delete
+                custom category names here.
               </p>
-              {categoryImagePreview ? (
-                <div className="mt-3 flex items-start gap-3">
-                  <div className="h-24 w-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
-                    <img
-                      src={categoryImagePreview}
-                      alt="Category preview"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+            </div>
+
+            <form onSubmit={saveCategoryType} className="space-y-4">
+              <div>
+                <label className={dashboardLabelClass}>Category Name *</label>
+                <input
+                  type="text"
+                  value={categoryTypeDraft}
+                  onChange={(event) => {
+                    setCategoryTypeDraft(event.target.value);
+                    if (categoryTypeError) setCategoryTypeError("");
+                  }}
+                  className={`${dashboardFieldClass} text-base ${
+                    categoryTypeError
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : ""
+                  }`}
+                  placeholder={
+                    editingTypeId ? "Rename category name" : "Enter category name"
+                  }
+                  autoComplete="off"
+                />
+                {categoryTypeError ? (
+                  <p className="mt-1 text-sm font-medium text-red-600">
+                    {categoryTypeError}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={categoryTypeSaving}
+                  className={`${dashboardPrimaryButtonClass} px-5 py-3 disabled:cursor-not-allowed disabled:opacity-60`}
+                  style={{
+                    backgroundColor: themeColor,
+                    backgroundImage: "none",
+                    color: buttonTextColor,
+                  }}
+                >
+                  {categoryTypeSaving ? "Saving..." : "Add Category Name"}
+                </button>
+                {editingTypeId ? (
                   <button
                     type="button"
-                    onClick={removeCategoryImage}
-                    className={dashboardSecondaryButtonClass}
+                    onClick={resetCategoryTypeDraft}
+                    className={`${dashboardSecondaryButtonClass} px-5 py-3`}
                   >
-                    Remove
+                    Cancel Edit
                   </button>
+                ) : null}
+              </div>
+            </form>
+
+            <div className="mt-6 rounded-3xl border border-gray-200 bg-gray-50 p-4 md:p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">
+                    Category Name List
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Latest is locked. Other names can be edited or removed.
+                  </p>
                 </div>
-              ) : null}
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+                  {sortedCategoryTypes.length} total
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {sortedCategoryTypes.map((entry) => {
+                  const id = String(entry?._id || entry?.id || "").trim();
+                  const name = String(entry?.name || "").trim();
+                  const locked = name.toLowerCase() === "latest";
+                  const isEditing = editingTypeId === id;
+
+                  return (
+                    <div
+                      key={id || name}
+                      className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="min-w-0">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={editingTypeDraft}
+                              onChange={(event) => {
+                                setEditingTypeDraft(event.target.value);
+                                if (categoryTypeError) setCategoryTypeError("");
+                              }}
+                              className={`${dashboardFieldClass} text-base ${
+                                categoryTypeError
+                                  ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                                  : ""
+                              }`}
+                              placeholder="Rename category name"
+                              autoFocus
+                            />
+                            {categoryTypeError ? (
+                              <p className="text-sm font-medium text-red-600">
+                                {categoryTypeError}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <>
+                            <p className="truncate text-base font-semibold text-black">
+                              {name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {locked
+                                ? "Default category name"
+                                : "Custom category name"}
+                            </p>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {locked ? (
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-600">
+                            Locked
+                          </span>
+                        ) : (
+                          isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={saveEditedCategoryType}
+                                disabled={categoryTypeSaving}
+                                className={`${dashboardPrimaryButtonClass} px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60`}
+                                style={{
+                                  backgroundColor: themeColor,
+                                  backgroundImage: "none",
+                                  color: buttonTextColor,
+                                }}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditCategoryType}
+                                className={`${dashboardSecondaryButtonClass} px-4 py-2 text-sm`}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => beginEditCategoryType(entry)}
+                              className={`${dashboardPrimaryButtonClass} px-4 py-2 text-sm`}
+                              style={{
+                                backgroundColor: themeColor,
+                                backgroundImage: "none",
+                                color: buttonTextColor,
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => askDeleteCategoryType(entry)}
+                              className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                            >
+                              Delete
+                            </button>
+                          </>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.section>
+        ) : null}
+
+        {showSubcategoryForm ? (
+          <motion.section
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
+            className={`${dashboardFormSurfaceClass} p-5 md:p-6`}
+          >
+            <div className="mb-5 flex flex-col gap-2">
+              <div className="inline-flex w-fit rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-600">
+                Sub Category Page
+              </div>
+              <h2 className="text-xl font-semibold text-black">
+                Create a sub category under a category name
+              </h2>
+              <p className="text-sm text-gray-600">
+                Choose a parent category name, add the sub category, and upload
+                an image if needed.
+              </p>
             </div>
 
-            <motion.button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-2 flex w-full items-center justify-center rounded-full px-6 py-3 text-base md:text-lg font-bold shadow-lg shadow-slate-900/15 transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60"
-              style={{
-                backgroundColor: themeColor,
-                color: buttonTextColor,
-              }}
-            >
-              {isSubmitting ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Creating...
-                </>
-              ) : (
-                "Create Category"
-              )}
-            </motion.button>
-          </form>
-        </motion.div>
+            <form onSubmit={saveSubcategory} noValidate className="space-y-4">
+              <div>
+                <label className={dashboardLabelClass}>Category Name *</label>
+                <CategoryTypeSelect
+                  value={subcategoryParent}
+                  onChange={(value) => {
+                    setSubcategoryParent(value);
+                    if (subcategoryParentError) setSubcategoryParentError("");
+                  }}
+                  placeholder="Select a category name"
+                  buttonClassName={`${dashboardFieldClass} text-base ${
+                    subcategoryParentError
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : ""
+                  }`}
+                  showManageButton={false}
+                  includeAllOption={false}
+                />
+                {subcategoryParentError ? (
+                  <p className="mt-1 text-sm font-medium text-red-600">
+                    {subcategoryParentError}
+                  </p>
+                ) : null}
+              </div>
+
+              <div>
+                <label className={dashboardLabelClass}>Sub Category *</label>
+                <input
+                  type="text"
+                  value={subcategoryName}
+                  onChange={(event) => {
+                    setSubcategoryName(event.target.value);
+                    if (subcategoryError) setSubcategoryError("");
+                  }}
+                  className={`${dashboardFieldClass} text-base ${
+                    subcategoryError
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : ""
+                  }`}
+                  placeholder="Enter sub category"
+                  autoComplete="off"
+                />
+                {subcategoryError ? (
+                  <p className="mt-1 text-sm font-medium text-red-600">
+                    {subcategoryError}
+                  </p>
+                ) : null}
+              </div>
+
+              <div>
+                <label className={dashboardLabelClass}>Sub Category Image</label>
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm font-medium text-gray-700 transition hover:border-gray-400 hover:bg-gray-100">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleSubcategoryImageChange}
+                  />
+                  <span>Upload image</span>
+                  <span className="mt-1 text-xs text-gray-500">
+                    Optional but recommended for storefront cards.
+                  </span>
+                </label>
+
+                {subcategoryImagePreview ? (
+                  <div className="mt-3 flex items-start gap-3">
+                    <div className="h-24 w-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                      <img
+                        src={subcategoryImagePreview}
+                        alt="Sub category preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeSubcategoryImage}
+                      className={dashboardSecondaryButtonClass}
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <button
+                type="submit"
+                disabled={subcategorySaving}
+                className="inline-flex w-full items-center justify-center rounded-full px-6 py-3 text-base font-bold shadow-lg shadow-slate-900/15 transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  backgroundColor: themeColor,
+                  color: buttonTextColor,
+                }}
+              >
+                {subcategorySaving ? "Creating..." : "Create Sub Category"}
+              </button>
+
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                The same sub category name can exist under different category
+                names, but it must stay unique within the same parent.
+              </div>
+            </form>
+          </motion.section>
+        ) : null}
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        title="Delete category name?"
+        message={
+          deleteTarget?.name
+            ? `Delete "${deleteTarget.name}"? It will be reassigned to Latest.`
+            : "Delete this category name?"
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDanger
+        isLoading={deleteSaving}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteCategoryType}
+      />
     </motion.div>
   );
 }

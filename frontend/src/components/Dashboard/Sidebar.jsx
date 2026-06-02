@@ -166,6 +166,11 @@ const getRoleSections = (
                 tab: "create-category",
               },
               {
+                name: "Create Sub Category",
+                icon: FiPlus,
+                tab: "create-sub-category",
+              },
+              {
                 name: "Modify Category",
                 icon: FiEdit,
                 tab: "modify-category",

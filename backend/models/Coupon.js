@@ -85,12 +85,6 @@ const couponSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  vendor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Vendor",
-    default: null,
-    index: true,
-  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
